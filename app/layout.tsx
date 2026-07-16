@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Inter, Varela_Round } from "next/font/google";
 import "./globals.css";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -28,7 +30,9 @@ export default function RootLayout({
       lang="en"
       className={`${inter.variable} ${varela.variable} h-full antialiased`}
     >
+      <Navbar />
       <body className="min-h-screen font-body">{children}</body>
+      <Footer />
     </html>
   );
 }
