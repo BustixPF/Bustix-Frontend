@@ -1,42 +1,133 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* ---- Tokens de marca (H S% L%, sin hsl()) ---- */
+  --bustix-orange: 36.1 87.6% 59.0%;      /* #F2A93B — primario */
+  --bustix-teal: 172.0 60.6% 26.9%;       /* #1B6E63 — secundario */
+  --bustix-coral: 8.9 78.6% 57.8%;        /* #E8583F — acento / alerta */
+  --bustix-cream: 43.3 45.0% 92.2%;       /* #F4EFE2 — fondo claro */
+  --bustix-navy: 220.0 31.9% 9.2%;        /* #10151F — fondo oscuro */
+  --bustix-navy-hero: 218.2 32.4% 13.3%;  /* #171F2D — navy secundario */
+  --bustix-input-bg: 45.0 66.7% 97.6%;    /* #FDFBF5 — fondo de inputs */
+  --bustix-border-tan: 44.0 27.8% 78.8%;  /* #D8D0BA — borde claro */
+  --bustix-border-dark: 222.2 24.3% 21.8%;/* #2A3245 — borde oscuro */
+  --bustix-text-muted: 222.2 12.9% 41.0%; /* #5B6376 — texto secundario claro */
+  --bustix-text-on-dark: 224.0 15.5% 81.0%;   /* #C7CBD6 */
+  --bustix-text-on-dark-2: 221.5 12.6% 59.6%; /* #8B93A5 */
+  --bustix-success: 171.4 53.8% 35.7%;    /* #2A8C7E — estado positivo */
+  --bustix-on-primary: 38.2 73.3% 5.9%;   /* #1A1204 — texto sobre botón naranja */
+
+  /* ---- Tokens semánticos ---- */
+  --background: var(--bustix-cream);
+  --foreground: var(--bustix-navy);
+
+  --card: 0 0% 100%;
+  --card-foreground: var(--bustix-navy);
+
+  --popover: 0 0% 100%;
+  --popover-foreground: var(--bustix-navy);
+
+  --primary: var(--bustix-orange);
+  --primary-foreground: var(--bustix-on-primary);
+
+  --secondary: var(--bustix-teal);
+  --secondary-foreground: 0 0% 100%;
+
+  --muted: var(--bustix-input-bg);
+  --muted-foreground: var(--bustix-text-muted);
+
+  --accent: var(--bustix-coral);
+  --accent-foreground: 0 0% 100%;
+
+  --destructive: var(--bustix-coral);
+  --destructive-foreground: 0 0% 100%;
+
+  --success: var(--bustix-success);
+  --success-foreground: 0 0% 100%;
+
+  --border: var(--bustix-border-tan);
+  --input: var(--bustix-border-tan);
+  --ring: var(--bustix-orange);
+
+  --radius: 0.75rem;
+}
+
+/* ---- Zonas oscuras puntuales (header, footer, sidebars) ----
+   BusTix no usa modo oscuro global: solo algunas secciones (nav,
+   footer, board de salidas) usan fondo navy. Aplica esta clase al
+   contenedor de esas secciones. */
+.bustix-dark {
+  --background: var(--bustix-navy);
+  --foreground: 0 0% 100%;
+  --card: var(--bustix-navy-hero);
+  --card-foreground: 0 0% 100%;
+  --border: var(--bustix-border-dark);
+  --muted-foreground: var(--bustix-text-on-dark);
 }
 
 @theme inline {
-  --color-background: #ffffff;
-  --color-text: #261000;
-  --color-primary: #c9a84c;
-  --color-accent: #583a00;
-  --color-surface: #ffffff;
-  --color-border: #e2e8f0;
-  --font-headline: var(--font-headline);
-  --font-body: var(--font-body);
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+
+  --color-success: hsl(var(--success));
+  --color-success-foreground: hsl(var(--success-foreground));
+
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+
+  /* alias legacy (compatibilidad con clases ya usadas en el código) */
+  --color-text: hsl(var(--foreground));
+  --color-surface: hsl(var(--card));
+
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+  --font-display: var(--font-display);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+@utility font-display {
+  font-family: var(--font-display);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
 }
 
-@utility font-headline {
-  font-family: var(--font-headline);
-}
-
-@utility font-body {
-  font-family: var(--font-body);
+@utility font-mono-label {
+  font-family: var(--font-mono);
+  letter-spacing: 0.03em;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-body);
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: var(--font-sans);
 }
 
 .navbar-link {
-  @apply text-text hover:text-surface hover:bg-primary transition-all duration-300 hover:rounded-full px-3 py-2;
+  @apply text-sm font-bold text-foreground hover:text-primary-foreground hover:bg-primary transition-all duration-300 hover:rounded-full px-5 py-2;
 }

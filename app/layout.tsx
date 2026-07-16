@@ -1,19 +1,8 @@
 import type { Metadata } from "next";
-import { Inter, Varela_Round } from "next/font/google";
 import "./globals.css";
+import { workSans, jetbrainsMono, bigShouldersDisplay } from "./fonts";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-body",
-});
-
-const varela = Varela_Round({
-  subsets: ["latin"],
-  weight: "400",
-  variable: "--font-headline",
-});
 
 export const metadata: Metadata = {
   title: "Bustix",
@@ -28,10 +17,10 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${varela.variable} h-full antialiased`}
+      className={`${workSans.variable} ${jetbrainsMono.variable} ${bigShouldersDisplay.variable} h-full antialiased`}
     >
       <Navbar />
-      <body className="min-h-screen font-body">{children}</body>
+      <body className="min-h-screen font-sans">{children}</body>
       <Footer />
     </html>
   );
