@@ -7,7 +7,7 @@ import {
   HowItWorks,
   PartnerCompanies,
   CompanyCta,
-} from "@/components/home/home";
+} from "@/components/home/page";
 
 export default function Home() {
   return (

@@ -1,9 +1,9 @@
 import * as Yup from "yup";
-import { searchFormValues } from "@/interfaces/search.interfaces";
+import { searchFormValues } from "@/interfaces/search.interface";
 
 export const searchInitialValues: searchFormValues = {
   origin: "Medellín (Ant.)",
-  destination: "Bogotá (D.C.)",
+  destination: "Cali (Valle)",
   departureDate: "",
   returnDate: "",
 };

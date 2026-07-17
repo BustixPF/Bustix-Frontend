@@ -47,7 +47,7 @@ const SearchForm = () => {
             value={formik.values.origin}
             onChange={formik.handleChange}
             onBlur={formik.handleBlur}
-            className="w-full rounded-lg border border-border bg-muted px-4 py-2.5 text-sm text-card-foreground outline-none focus:border-primary"
+            className="w-full rounded-lg border border-border bg-muted px-4 py-2.5 text-sm text-[var(--bustix-text-on-dark)] outline-none focus:border-primary"
           />
         </label>
 
@@ -70,7 +70,7 @@ const SearchForm = () => {
             value={formik.values.destination}
             onChange={formik.handleChange}
             onBlur={formik.handleBlur}
-            className="w-full rounded-lg border border-border bg-muted px-4 py-2.5 text-sm text-card-foreground outline-none focus:border-primary"
+            className="w-full rounded-lg border border-border bg-muted px-4 py-2.5 text-sm text-[var(--bustix-text-on-dark)] outline-none focus:border-primary"
           />
         </label>
       </div>
@@ -86,7 +86,7 @@ const SearchForm = () => {
             value={formik.values.departureDate}
             onChange={formik.handleChange}
             onBlur={formik.handleBlur}
-            className="w-full rounded-lg border border-border bg-muted px-4 py-2.5 text-sm text-card-foreground outline-none focus:border-primary"
+            className="w-full rounded-lg border border-border bg-muted px-4 py-2.5 text-sm text-[var(--bustix-text-on-dark)] outline-none focus:border-primary"
           />
         </label>
 
@@ -100,7 +100,7 @@ const SearchForm = () => {
             value={formik.values.returnDate}
             onChange={formik.handleChange}
             onBlur={formik.handleBlur}
-            className="w-full rounded-lg border border-border bg-muted px-4 py-2.5 text-sm text-card-foreground outline-none focus:border-primary"
+            className="w-full rounded-lg border border-border bg-muted px-4 py-2.5 text-sm text-[var(--bustix-text-on-dark)] outline-none focus:border-primary"
           />
         </label>
       </div>

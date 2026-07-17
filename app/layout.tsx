@@ -19,9 +19,13 @@ export default function RootLayout({
       lang="en"
       className={`${workSans.variable} ${jetbrainsMono.variable} ${bigShouldersDisplay.variable} h-full antialiased`}
     >
-      <Navbar />
-      <body className="min-h-screen font-sans">{children}</body>
-      <Footer />
+      
+      <body className="min-h-screen font-sans">
+        <Navbar />
+        {children}
+        <Footer />
+      </body>
+      
     </html>
   );
 }

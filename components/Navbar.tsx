@@ -10,16 +10,19 @@ const Navbar = () => {
         </Link>
       </div>
       <ul className="flex items-center gap-3">
+        <Link href="/" className="text-sm font-bold text-foreground mr-5">
+           Inicio
+        </Link>
         <Link href="/#como-funciona" className="text-sm font-bold text-foreground ">
            Como funciona
         </Link>
 
-        <Link href="/login" className="navbar-link">
+        <Link href="/Auth/login" className="navbar-link">
           Iniciar sesión
         </Link>
 
         <Link
-          href="/Register"
+          href="/Auth/register"
           className="rounded-full bg-primary px-5 py-2 text-sm font-bold text-primary-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
         >
           Registrarse
