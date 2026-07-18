@@ -25,7 +25,7 @@ const AuthSidePanel = ({
         {eyebrow}
       </p>
 
-      <h1 className="mt-4 text-4xl leading-tight text-foreground">
+      <h1 className="mt-4 font-display text-4xl leading-tight text-foreground">
         {titleLine1}
         <br />
         <span className="text-primary">{titleAccent}</span>
@@ -36,25 +36,23 @@ const AuthSidePanel = ({
       <dl className="mt-16 grid max-w-sm grid-cols-3 gap-4">
         {stats.map((stat) => (
           <div key={stat.label}>
-            <dd className="text-xl font-bold text-foreground">{stat.value}</dd>
+            <dd className="font-display text-xl text-foreground">{stat.value}</dd>
             <dt className="mt-1 text-xs text-muted-foreground">{stat.label}</dt>
           </div>
         ))}
       </dl>
 
+      {/* Silueta de triángulos irregulares del pie del panel, calcada
+          proporcionalmente del path del SVG de referencia (bustix-login.svg). */}
       <svg
         aria-hidden="true"
         viewBox="0 0 400 70"
         preserveAspectRatio="none"
         className="absolute inset-x-0 bottom-0 h-24 w-full"
       >
-        <polygon
-          points="0,70 0,40 40,20 80,38 120,15 160,34 200,18 240,36 280,14 320,32 360,20 400,40 400,70"
-          className="fill-white/5"
-        />
-        <polygon
-          points="0,70 0,55 50,32 90,50 130,28 170,48 210,30 250,50 290,26 330,46 370,30 400,50 400,70"
-          className="fill-white/10"
+        <path
+          d="M0,70 L0,28.8 28.6,18.5 50,30.9 78.6,8.2 107.1,26.8 135.7,0 164.3,23.7 192.9,10.3 221.4,37 250,13.4 285.7,28.8 314.3,6.2 342.9,26.8 371.4,10.3 400,23.7 400,70 Z"
+          className="fill-black/25"
         />
       </svg>
     </div>

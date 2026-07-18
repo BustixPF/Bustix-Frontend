@@ -23,10 +23,10 @@ export default function LoginPage() {
         <div className="w-full max-w-md rounded-3xl border border-border bg-card p-10 shadow-xl">
           <div className="flex items-center justify-center gap-2">
             <span className="h-2.5 w-2.5 rounded-full bg-primary" />
-            <span className="text-lg font-bold text-card-foreground">BusTix</span>
+            <span className="font-display text-lg text-card-foreground">BusTix</span>
           </div>
 
-          <h2 className="mt-6 text-center text-2xl font-bold text-card-foreground">
+          <h2 className="mt-6 text-center font-display text-2xl text-card-foreground">
             Inicia sesión
           </h2>
           <p className="mt-1 text-center text-sm text-muted-foreground">
