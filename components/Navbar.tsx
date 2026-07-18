@@ -17,12 +17,16 @@ const Navbar = () => {
            Como funciona
         </Link>
 
-        <Link href="/Auth/login" className="navbar-link">
+        <Link href="/cliente/dashboard" className="navbar-link">
+          Dashboard
+        </Link>
+
+        <Link href="/auth/login" className="navbar-link">
           Iniciar sesión
         </Link>
 
         <Link
-          href="/Auth/register"
+          href="/auth/register"
           className="rounded-full bg-primary px-5 py-2 text-sm font-bold text-primary-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
         >
           Registrarse
