@@ -12,13 +12,6 @@ import {
   type DepartureStatus,
 } from "@/data/home";
 
-const MapPin = (props: SVGProps<SVGSVGElement>) => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-    <path d="M12 11.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z" />
-    <path d="M12 22s8-4.5 8-11A8 8 0 0 0 4 11.08c0 6.5 8 11 8 11z" />
-  </svg>
-);
-
 const ArrowRight = (props: SVGProps<SVGSVGElement>) => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
     <path d="M5 12h14" />
@@ -73,27 +66,43 @@ const Headphones = (props: SVGProps<SVGSVGElement>) => (
 );
 
 const STATS = [
-  { value: "30+", label: "Empresas activas" },
-  { value: "900+", label: "Rutas activas" },
-  { value: "24/7", label: "Soporte" },
+  { value: "60+", label: "Empresas aliadas" },
+  { value: "6.000+", label: "Rutas activas" },
+  { value: "24/7", label: "Compra en línea" },
 ];
+
+const SkylineSilhouette = () => (
+  <svg
+    aria-hidden="true"
+    viewBox="0 0 400 40"
+    preserveAspectRatio="none"
+    className="pointer-events-none absolute inset-x-0 bottom-0 h-10 w-full sm:h-14"
+  >
+    <path
+      d="M0,40 L0,22 40,17 80,24 120,10 160,20 200,8 240,18 280,12 320,22 360,14 400,20 400,40 Z"
+      className="fill-black/25"
+    />
+  </svg>
+);
 
 export const Hero = () => {
   return (
-    <section className="bustix-dark bg-background px-8 pb-20 pt-14 md:pt-20">
+    <section className="bustix-dark relative bg-background px-8 pb-20 pt-14 md:pt-20">
       <div className="mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-2">
         <div>
-          <p className="flex items-center gap-2 font-mono-label text-xs uppercase text-muted-foreground">
-            <MapPin className="h-3.5 w-3.5 text-primary" />
+          <p className="flex items-center gap-2 font-mono-label text-xs uppercase text-primary">
+            <span className="h-1.5 w-1.5 rounded-full bg-primary" />
             Terminal Digital · Colombia
           </p>
 
           <h1 className="mt-4 font-display text-4xl leading-[1.05] text-foreground sm:text-5xl lg:text-6xl">
-            Tu próxima ruta, <span className="text-primary">en segundos</span>
+            Tu próxima
+            <br />
+            <span className="text-primary">ruta, en segundos</span>
           </h1>
 
           <p className="mt-5 max-w-md text-muted-foreground">
-            Compara horarios y precios de más de 30 empresas de buses en un
+            Compara horarios y precios de más de 60 empresas de buses en un
             solo lugar. Sin filas, sin llamadas, sin sorpresas.
           </p>
 
@@ -115,6 +124,8 @@ export const Hero = () => {
           <SearchForm />
         </div>
       </div>
+
+      <SkylineSilhouette />
     </section>
   );
 };
@@ -125,11 +136,11 @@ export const WaveDivider = () => {
   return (
     <div
       aria-hidden="true"
-      className="bustix-dark h-4 w-full bg-background"
+      className="bustix-dark h-3 w-full bg-background"
       style={{
-        backgroundImage: `linear-gradient(135deg, hsl(var(--bustix-cream)) 50%, transparent 50%),
-          linear-gradient(45deg, transparent 50%, hsl(var(--bustix-cream)) 50%)`,
-        backgroundSize: "24px 16px",
+        backgroundImage:
+          "radial-gradient(circle at 10px 100%, hsl(var(--bustix-cream)) 9px, transparent 9.5px)",
+        backgroundSize: "20px 100%",
         backgroundRepeat: "repeat-x",
       }}
     />
@@ -173,9 +184,14 @@ export const PopularRoutes = () => {
               </p>
 
               <div className="mt-6 flex items-end justify-between">
-                <span className="font-display text-2xl text-card-foreground">
-                  {formatCOP(route.price)}
-                </span>
+                <div>
+                  <span className="font-mono-label text-lg font-bold text-secondary">
+                    {formatCOP(route.price)}
+                  </span>
+                  <p className="font-mono-label text-[10.5px] uppercase text-muted-foreground">
+                    COP · desde
+                  </p>
+                </div>
                 <a
                   href="#"
                   className="flex items-center gap-1 text-sm font-semibold text-accent hover:underline"
@@ -228,12 +244,12 @@ export const UpcomingDepartures = () => {
             <tbody>
               {upcomingDepartures.map((departure) => (
                 <tr key={departure.id} className="border-t border-border text-foreground">
-                  <td className="px-5 py-4 font-medium">{departure.route}</td>
-                  <td className="px-5 py-4 text-muted-foreground">{departure.company}</td>
-                  <td className="px-5 py-4 text-muted-foreground">{departure.departureTime}</td>
+                  <td className="font-mono-label px-5 py-4 font-medium">{departure.route}</td>
+                  <td className="font-mono-label px-5 py-4 text-muted-foreground">{departure.company}</td>
+                  <td className="font-mono-label px-5 py-4 text-muted-foreground">{departure.departureTime}</td>
                   <td className="px-5 py-4">
                     <span
-                      className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-bold ${STATUS_CLASSES[departure.status]}`}
+                      className={`font-mono-label inline-flex items-center rounded-full px-3 py-1 text-xs font-bold ${STATUS_CLASSES[departure.status]}`}
                     >
                       {STATUS_LABEL[departure.status]}
                     </span>
@@ -336,7 +352,7 @@ export const PartnerCompanies = () => {
           {partners.map((partner) => (
             <div
               key={partner.id}
-              className="flex h-16 items-center justify-center rounded-lg border border-border bg-card px-4 text-center text-sm font-semibold text-muted-foreground"
+              className="font-display flex h-16 items-center justify-center rounded-lg border border-border bg-card px-4 text-center text-sm text-muted-foreground"
             >
               {partner.name}
             </div>

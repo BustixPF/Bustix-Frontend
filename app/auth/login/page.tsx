@@ -21,12 +21,7 @@ export default function LoginPage() {
 
       <div className="flex flex-1 items-center justify-center bg-background px-6 py-16">
         <div className="w-full max-w-md rounded-3xl border border-border bg-card p-10 shadow-xl">
-          <div className="flex items-center justify-center gap-2">
-            <span className="h-2.5 w-2.5 rounded-full bg-primary" />
-            <span className="font-display text-lg text-card-foreground">BusTix</span>
-          </div>
-
-          <h2 className="mt-6 text-center font-display text-2xl text-card-foreground">
+          <h2 className="text-center font-display text-2xl text-card-foreground">
             Inicia sesión
           </h2>
           <p className="mt-1 text-center text-sm text-muted-foreground">
@@ -35,10 +30,10 @@ export default function LoginPage() {
 
           <LoginForm />
 
-          <div className="mt-6 flex items-center gap-3">
-            <span className="h-px flex-1 bg-border" />
-            <span className="text-xs text-muted-foreground">o continúa con</span>
-            <span className="h-px flex-1 bg-border" />
+          <div className="mt-6 flex items-center gap-2" aria-hidden="true">
+            <span className="h-2 w-2 rounded-full border border-border bg-card" />
+            <span className="h-px flex-1 border-t border-dashed border-border" />
+            <span className="h-2 w-2 rounded-full border border-border bg-card" />
           </div>
 
           <div className="mt-4 grid grid-cols-2 gap-3">
