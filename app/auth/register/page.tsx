@@ -21,7 +21,7 @@ export default function RegisterPage() {
 
       <div className="relative flex flex-1 items-center justify-center bg-background px-6 py-16">
         <Link
-          href="/Auth/login"
+          href="/auth/login"
           className="absolute right-6 top-6 text-sm font-semibold text-accent hover:underline"
         >
           Iniciar sesión →

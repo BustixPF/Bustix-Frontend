@@ -485,7 +485,7 @@ export const CompanyCta = () => {
         </div>
 
         <Link
-          href="/Auth/register"
+          href="/auth/register"
           className="whitespace-nowrap rounded-full bg-primary px-6 py-3 text-sm font-bold text-primary-foreground transition-colors hover:brightness-95"
         >
           Registrar mi empresa

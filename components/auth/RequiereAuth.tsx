@@ -9,7 +9,7 @@ const RequireAuth = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     if (!isLoading && !user) {
-      router.replace("/Auth/login");
+      router.replace("/auth/login");
     }
   }, [isLoading, user, router]);
 
