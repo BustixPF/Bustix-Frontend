@@ -3,6 +3,8 @@ import "./globals.css";
 import { workSans, jetbrainsMono, bigShouldersDisplay } from "./fonts";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { AuthProvider } from "@/components/context/AuthContext";
+import { ToastProvider } from "@/components/context/ToastContext";
 
 export const metadata: Metadata = {
   title: "Bustix",
@@ -19,13 +21,15 @@ export default function RootLayout({
       lang="en"
       className={`${workSans.variable} ${jetbrainsMono.variable} ${bigShouldersDisplay.variable} h-full antialiased`}
     >
-      
       <body className="min-h-screen font-sans">
-        <Navbar />
-        {children}
-        <Footer />
+        <AuthProvider>
+          <ToastProvider>
+            <Navbar />
+            {children}
+            <Footer />
+          </ToastProvider>
+        </AuthProvider>
       </body>
-      
     </html>
   );
 }
