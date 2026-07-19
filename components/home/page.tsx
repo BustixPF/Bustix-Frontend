@@ -1,3 +1,5 @@
+"use client";
+import { useMemo, useState } from "react";
 import type { ComponentType, SVGProps } from "react";
 import Link from "next/link";
 import SearchForm from "@/components/forms/home/SearchForm";
@@ -8,6 +10,7 @@ import {
   howItWorksSteps,
   partners,
   formatCOP,
+  weekdayFromDate,
   type BenefitIcon,
   type DepartureStatus,
 } from "@/data/home";
@@ -150,6 +153,44 @@ export const WaveDivider = () => {
 // ---------- Rutas populares ----------
 
 export const PopularRoutes = () => {
+  const [origin, setOrigin] = useState("Todos");
+  const [destination, setDestination] = useState("Todos");
+  const [company, setCompany] = useState("Todos");
+  const [date, setDate] = useState("");
+
+  const origins = useMemo(
+    () => ["Todos", ...Array.from(new Set(popularRoutes.map((r) => r.origin)))],
+    []
+  );
+  const destinations = useMemo(
+    () => ["Todos", ...Array.from(new Set(popularRoutes.map((r) => r.destination)))],
+    []
+  );
+  const companies = useMemo(
+    () => ["Todos", ...Array.from(new Set(popularRoutes.map((r) => r.company)))],
+    []
+  );
+
+  const filteredRoutes = useMemo(() => {
+    const weekday = date ? weekdayFromDate(date) : null;
+    return popularRoutes.filter((route) => {
+      if (origin !== "Todos" && route.origin !== origin) return false;
+      if (destination !== "Todos" && route.destination !== destination) return false;
+      if (company !== "Todos" && route.company !== company) return false;
+      if (weekday && !route.availableDays.includes(weekday)) return false;
+      return true;
+    });
+  }, [origin, destination, company, date]);
+
+  const handleReset = () => {
+    setOrigin("Todos");
+    setDestination("Todos");
+    setCompany("Todos");
+    setDate("");
+  };
+
+  const hasActiveFilters = origin !== "Todos" || destination !== "Todos" || company !== "Todos" || date !== "";
+
   return (
     <section id="rutas-populares" className="bg-background px-8 pb-20 pt-14">
       <div className="mx-auto max-w-6xl">
@@ -170,39 +211,106 @@ export const PopularRoutes = () => {
           </a>
         </div>
 
-        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {popularRoutes.map((route) => (
-            <article
-              key={route.id}
-              className="flex flex-col rounded-xl border border-border bg-card p-5"
+        <div className="mt-6 flex flex-wrap items-end gap-3 rounded-xl border border-border bg-card p-4">
+          <label className="flex flex-col gap-1">
+            <span className="text-xs font-semibold text-muted-foreground">Origen</span>
+            <select
+              value={origin}
+              onChange={(e) => setOrigin(e.target.value)}
+              className="rounded-lg border border-border bg-muted px-3 py-2 text-sm text-card-foreground outline-none focus:border-primary"
             >
-              <h3 className="font-display text-base text-card-foreground">
-                {route.origin} → {route.destination}
-              </h3>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {route.companiesCount} empresas · Desde {route.durationFrom}
-              </p>
+              {origins.map((o) => (
+                <option key={o} value={o}>{o}</option>
+              ))}
+            </select>
+          </label>
 
-              <div className="mt-6 flex items-end justify-between">
-                <div>
-                  <span className="font-mono-label text-lg font-bold text-secondary">
-                    {formatCOP(route.price)}
-                  </span>
-                  <p className="font-mono-label text-[10.5px] uppercase text-muted-foreground">
-                    COP · desde
-                  </p>
-                </div>
-                <a
-                  href="#"
-                  className="flex items-center gap-1 text-sm font-semibold text-accent hover:underline"
-                >
-                  Ver horarios
-                  <ArrowRight className="h-3.5 w-3.5" />
-                </a>
-              </div>
-            </article>
-          ))}
+          <label className="flex flex-col gap-1">
+            <span className="text-xs font-semibold text-muted-foreground">Destino</span>
+            <select
+              value={destination}
+              onChange={(e) => setDestination(e.target.value)}
+              className="rounded-lg border border-border bg-muted px-3 py-2 text-sm text-card-foreground outline-none focus:border-primary"
+            >
+              {destinations.map((d) => (
+                <option key={d} value={d}>{d}</option>
+              ))}
+            </select>
+          </label>
+
+          <label className="flex flex-col gap-1">
+            <span className="text-xs font-semibold text-muted-foreground">Empresa</span>
+            <select
+              value={company}
+              onChange={(e) => setCompany(e.target.value)}
+              className="rounded-lg border border-border bg-muted px-3 py-2 text-sm text-card-foreground outline-none focus:border-primary"
+            >
+              {companies.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          </label>
+
+          <label className="flex flex-col gap-1">
+            <span className="text-xs font-semibold text-muted-foreground">Fecha</span>
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="rounded-lg border border-border bg-muted px-3 py-2 text-sm text-card-foreground outline-none focus:border-primary"
+            />
+          </label>
+
+          {hasActiveFilters && (
+            <button
+              type="button"
+              onClick={handleReset}
+              className="ml-auto text-sm font-semibold text-accent hover:underline"
+            >
+              Limpiar filtros
+            </button>
+          )}
         </div>
+
+        {filteredRoutes.length === 0 ? (
+          <p className="mt-8 rounded-xl border border-dashed border-border bg-card p-8 text-center text-sm text-muted-foreground">
+            No hay rutas que coincidan con esos filtros. Prueba con otra combinación.
+          </p>
+        ) : (
+          <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {filteredRoutes.map((route) => (
+              <article
+                key={route.id}
+                className="flex flex-col rounded-xl border border-border bg-card p-5"
+              >
+                <h3 className="font-display text-base text-card-foreground">
+                  {route.origin} → {route.destination}
+                </h3>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {route.company} · {route.companiesCount} empresas · Desde {route.durationFrom}
+                </p>
+
+                <div className="mt-6 flex items-end justify-between">
+                  <div>
+                    <span className="font-mono-label text-lg font-bold text-secondary">
+                      {formatCOP(route.price)}
+                    </span>
+                    <p className="font-mono-label text-[10.5px] uppercase text-muted-foreground">
+                      COP · desde
+                    </p>
+                  </div>
+                  <a
+                    href="#"
+                    className="flex items-center gap-1 text-sm font-semibold text-accent hover:underline"
+                  >
+                    Ver horarios
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </a>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );
@@ -264,6 +372,33 @@ export const UpcomingDepartures = () => {
   );
 };
 
+// ---------- Cómo funciona ----------
+
+export const HowItWorks = () => {
+  return (
+    <section id="como-funciona" className="bustix-dark bg-background px-8 py-16">
+      <div className="mx-auto max-w-6xl">
+        <h2 className="font-display text-2xl text-foreground sm:text-3xl">Cómo funciona</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Tres pasos entre tú y tu próximo viaje.
+        </p>
+
+        <ol className="mt-8 grid gap-4 sm:grid-cols-3">
+          {howItWorksSteps.map((step) => (
+            <li key={step.id} className="rounded-xl border border-border bg-card p-6">
+              <p className="font-mono-label text-xs text-primary">
+                {step.number} · {step.label.toUpperCase()}
+              </p>
+              <h3 className="mt-3 font-display text-lg text-card-foreground">{step.title}</h3>
+              <p className="mt-2 text-sm text-muted-foreground">{step.description}</p>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </section>
+  );
+};
+
 // ---------- Beneficios ----------
 
 const BENEFIT_ICONS: Record<BenefitIcon, ComponentType<{ className?: string }>> = {
@@ -310,33 +445,6 @@ export const Benefits = () => {
   );
 };
 
-// ---------- Cómo funciona ----------
-
-export const HowItWorks = () => {
-  return (
-    <section id="como-funciona" className="bustix-dark bg-background px-8 py-16">
-      <div className="mx-auto max-w-6xl">
-        <h2 className="font-display text-2xl text-foreground sm:text-3xl">Cómo funciona</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Tres pasos entre tú y tu próximo viaje.
-        </p>
-
-        <ol className="mt-8 grid gap-4 sm:grid-cols-3">
-          {howItWorksSteps.map((step) => (
-            <li key={step.id} className="rounded-xl border border-border bg-card p-6">
-              <p className="font-mono-label text-xs text-primary">
-                {step.number} · {step.label.toUpperCase()}
-              </p>
-              <h3 className="mt-3 font-display text-lg text-card-foreground">{step.title}</h3>
-              <p className="mt-2 text-sm text-muted-foreground">{step.description}</p>
-            </li>
-          ))}
-        </ol>
-      </div>
-    </section>
-  );
-};
-
 // ---------- Empresas aliadas ----------
 
 export const PartnerCompanies = () => {
@@ -377,7 +485,7 @@ export const CompanyCta = () => {
         </div>
 
         <Link
-          href="/Register"
+          href="/Auth/register"
           className="whitespace-nowrap rounded-full bg-primary px-6 py-3 text-sm font-bold text-primary-foreground transition-colors hover:brightness-95"
         >
           Registrar mi empresa

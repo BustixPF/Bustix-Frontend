@@ -1,6 +1,17 @@
+"use client";
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useAuth } from '@/components/context/AuthContext'
 
 const Navbar = () => {
+  const { user, logout } = useAuth()
+  const router = useRouter()
+
+  const handleLogout = () => {
+    logout()
+    router.push('/')
+  }
+
   return (
     <nav className="bustix-dark flex items-center justify-between bg-background px-8 py-4">
       <div className="flex items-center gap-2">
@@ -17,20 +28,33 @@ const Navbar = () => {
            Como funciona
         </Link>
 
-        <Link href="/cliente/dashboard" className="navbar-link">
-          Dashboard
-        </Link>
+        {user ? (
+          <>
+            <Link href="/cliente/dashboard" className="navbar-link">
+              Hola, {user.name}
+            </Link>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="rounded-full bg-primary px-5 py-2 text-sm font-bold text-primary-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+            >
+              Cerrar sesión
+            </button>
+          </>
+        ) : (
+          <>
+            <Link href="/Auth/login" className="navbar-link">
+              Iniciar sesión
+            </Link>
 
-        <Link href="/auth/login" className="navbar-link">
-          Iniciar sesión
-        </Link>
-
-        <Link
-          href="/auth/register"
-          className="rounded-full bg-primary px-5 py-2 text-sm font-bold text-primary-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-        >
-          Registrarse
-        </Link>
+            <Link
+              href="/Auth/register"
+              className="rounded-full bg-primary px-5 py-2 text-sm font-bold text-primary-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+            >
+              Registrarse
+            </Link>
+          </>
+        )}
       </ul>
     </nav>
   )
