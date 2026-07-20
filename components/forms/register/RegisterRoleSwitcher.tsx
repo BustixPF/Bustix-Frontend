@@ -37,7 +37,7 @@ const RegisterRoleSwitcher = () => {
         </button>
       </div>
 
-      <div className="grid">
+      <div className="grid" key={role}>
         <div className={`[grid-area:1/1] ${role === "pasajero" ? "" : "invisible"}`}>
           <PassengerRegisterForm />
         </div>

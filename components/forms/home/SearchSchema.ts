@@ -9,8 +9,9 @@ export const searchInitialValues: searchFormValues = {
 };
 
 export const searchValidationSchema = Yup.object({
-  origin: Yup.string().required("Elige un origen"),
+  origin: Yup.string().max(100, "Máximo 100 caracteres").required("Elige un origen"),
   destination: Yup.string()
+    .max(100, "Máximo 100 caracteres")
     .required("Elige un destino")
     .notOneOf([Yup.ref("origin")], "El destino debe ser distinto al origen"),
   departureDate: Yup.string().required("Elige la fecha de ida"),

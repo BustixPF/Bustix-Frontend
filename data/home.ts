@@ -2,9 +2,11 @@ export interface PopularRoute {
   id: string;
   origin: string;
   destination: string;
+  company: string;
   companiesCount: number;
   durationFrom: string;
   price: number;
+  availableDays: string[];
 }
 
 export type DepartureStatus = "a-tiempo" | "embarcando";
@@ -41,10 +43,46 @@ export interface Partner {
 }
 
 export const popularRoutes: PopularRoute[] = [
-  { id: "medellin-cali", origin: "Medellín", destination: "Cali", companiesCount: 10, durationFrom: "8h 00m", price: 62000 },
-  { id: "cali-pasto", origin: "cali", destination: "pasto", companiesCount: 12, durationFrom: "10h 00m", price: 28000 },
-  { id: "cartagena-barranquilla", origin: "cartagena", destination: "barranquilla", companiesCount: 6, durationFrom: "2h 30m", price: 18500 },
-  { id: "bogota-bucaramanga", origin: "Bogotá", destination: "Bucaramanga", companiesCount: 8, durationFrom: "9h 00m", price: 71000 },
+  {
+    id: "medellin-cali",
+    origin: "Medellín",
+    destination: "Cali",
+    company: "Rápido Ochoa",
+    companiesCount: 10,
+    durationFrom: "8h 00m",
+    price: 62000,
+    availableDays: ["Lunes", "Miércoles", "Viernes", "Domingo"],
+  },
+  {
+    id: "cali-pasto",
+    origin: "Cali",
+    destination: "Pasto",
+    company: "Flota Occidental",
+    companiesCount: 12,
+    durationFrom: "10h 00m",
+    price: 28000,
+    availableDays: ["Martes", "Jueves", "Sábado"],
+  },
+  {
+    id: "cartagena-barranquilla",
+    origin: "Cartagena",
+    destination: "Barranquilla",
+    company: "Berlinas del Fonce",
+    companiesCount: 6,
+    durationFrom: "2h 30m",
+    price: 18500,
+    availableDays: ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"],
+  },
+  {
+    id: "bogota-bucaramanga",
+    origin: "Bogotá",
+    destination: "Bucaramanga",
+    company: "Coocotal",
+    companiesCount: 8,
+    durationFrom: "9h 00m",
+    price: 71000,
+    availableDays: ["Miércoles", "Sábado", "Domingo"],
+  },
 ];
 
 export const upcomingDepartures: UpcomingDeparture[] = [
@@ -75,6 +113,13 @@ export const partners: Partner[] = [
   { id: "flota-occidental", name: "Flota Occidental" },
   { id: "berlinas-del-fonce", name: "Berlinas del Fonce" },
 ];
+
+const WEEKDAYS = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+
+export function weekdayFromDate(dateISO: string): string {
+  const parsed = new Date(`${dateISO}T00:00:00`);
+  return WEEKDAYS[parsed.getDay()];
+}
 
 export function formatCOP(value: number): string {
   return new Intl.NumberFormat("es-CO", {
