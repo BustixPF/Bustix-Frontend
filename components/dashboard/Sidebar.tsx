@@ -16,14 +16,7 @@ const ACTIVE_HREF = "/cliente/dashboard";
 const Sidebar = () => {
   return (
     <aside className="bustix-dark sticky top-0 hidden h-screen w-[260px] shrink-0 flex-col overflow-y-auto bg-background px-4 py-6 lg:flex">
-      <div className="flex items-center gap-2 px-3">
-        <span className="h-2.5 w-2.5 rounded-full bg-primary" />
-        <span className="font-display text-lg text-foreground">BusTix</span>
-      </div>
-
-      <div className="mt-6 border-t border-border" />
-
-      <nav className="mt-4 flex flex-col gap-1">
+      <nav className="flex flex-col gap-1">
         {NAV_ITEMS.map((item) => {
           const isActive = item.href === ACTIVE_HREF;
           return (

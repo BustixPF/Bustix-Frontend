@@ -3,6 +3,13 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/context/AuthContext'
 
+const BellIcon = () => (
+  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+    <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+  </svg>
+)
+
 const Navbar = () => {
   const { user, logout } = useAuth()
   const router = useRouter()
@@ -28,8 +35,22 @@ const Navbar = () => {
            Como funciona
         </Link>
 
+        {/* TODO: quitar este acceso directo cuando terminemos de probar el dashboard */}
+        <Link href="/cliente/dashboard" className="navbar-link">
+          Dashboard
+        </Link>
+
         {user ? (
           <>
+            <button
+              type="button"
+              aria-label="Notificaciones"
+              className="relative flex h-9 w-9 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:border-primary hover:text-foreground"
+            >
+              <BellIcon />
+              <span className="absolute right-2 top-1.5 h-2 w-2 rounded-full bg-accent" />
+            </button>
+
             <Link href="/cliente/dashboard" className="navbar-link">
               Hola, {user.name}
             </Link>
