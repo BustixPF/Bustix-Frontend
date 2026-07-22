@@ -31,14 +31,11 @@ const Navbar = () => {
         <Link href="/" className="text-sm font-bold text-foreground mr-5">
            Inicio
         </Link>
-        <Link href="/#como-funciona" className="text-sm font-bold text-foreground ">
-           Como funciona
-        </Link>
-
-        {/* TODO: quitar este acceso directo cuando terminemos de probar el dashboard */}
-        <Link href="/cliente/dashboard" className="navbar-link">
-          Dashboard
-        </Link>
+        {!user && (
+          <Link href="/#como-funciona" className="text-sm font-bold text-foreground ">
+             Como funciona
+          </Link>
+        )}
 
         {user ? (
           <>

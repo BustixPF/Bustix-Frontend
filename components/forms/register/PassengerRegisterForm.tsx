@@ -1,7 +1,11 @@
 "use client";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useFormik } from "formik";
 import EyeIcon from "@/components/forms/register/EyeIcon";
+import { api, getApiErrorMessage, TOKEN_STORAGE_KEY } from "@/lib/api";
+import { useAuth } from "@/components/context/AuthContext";
+import { useToast } from "@/components/context/ToastContext";
 import {
   passengerRegisterInitialValues,
   passengerRegisterValidationSchema,
@@ -10,11 +14,41 @@ import {
 const PassengerRegisterForm = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const { login } = useAuth();
+  const { showToast } = useToast();
+  const router = useRouter();
 
   const formik = useFormik({
     initialValues: passengerRegisterInitialValues,
     validationSchema: passengerRegisterValidationSchema,
-    onSubmit: () => {
+    onSubmit: async (values, { setSubmitting }) => {
+      try {
+        const { data: signUpData } = await api.post("/auth/signup", {
+          name: values.fullName,
+          email: values.email,
+          password: values.password,
+          confirmPassword: values.confirmPassword,
+          dni: Number(values.dni),
+          phone: Number(values.phone),
+        });
+
+        const { data: signInData } = await api.post("/auth/signin", {
+          email: values.email,
+          password: values.password,
+        });
+        window.localStorage.setItem(TOKEN_STORAGE_KEY, signInData.token);
+        login({ name: values.fullName, email: values.email });
+        showToast({ type: "success", title: "Cuenta creada", message: signUpData.message });
+        router.push("/cliente/dashboard");
+      } catch (error) {
+        showToast({
+          type: "error",
+          title: "No se pudo crear la cuenta",
+          message: getApiErrorMessage(error, "Intenta de nuevo en unos minutos"),
+        });
+      } finally {
+        setSubmitting(false);
+      }
     },
   });
 
@@ -35,6 +69,24 @@ const PassengerRegisterForm = () => {
         />
         {formik.touched.fullName && formik.errors.fullName && (
           <p className="mt-1 text-xs text-destructive">{formik.errors.fullName}</p>
+        )}
+      </label>
+
+      <label className="mt-4 block">
+        <span className="font-mono-label text-xs uppercase text-muted-foreground">
+          DNI
+        </span>
+        <input
+          type="text"
+          name="dni"
+          placeholder="40123456"
+          value={formik.values.dni}
+          onChange={formik.handleChange}
+          onBlur={formik.handleBlur}
+          className="mt-1.5 w-full rounded-lg border border-border bg-muted px-4 py-2.5 text-sm text-card-foreground outline-none focus:border-primary"
+        />
+        {formik.touched.dni && formik.errors.dni && (
+          <p className="mt-1 text-xs text-destructive">{formik.errors.dni}</p>
         )}
       </label>
 
@@ -157,9 +209,10 @@ const PassengerRegisterForm = () => {
 
       <button
         type="submit"
-        className="mt-5 w-full rounded-full bg-primary py-3 text-sm font-bold text-primary-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+        disabled={formik.isSubmitting}
+        className="mt-5 w-full rounded-full bg-primary py-3 text-sm font-bold text-primary-foreground transition-colors hover:bg-accent hover:text-accent-foreground disabled:opacity-60"
       >
-        Crear cuenta
+        {formik.isSubmitting ? "Creando cuenta..." : "Crear cuenta"}
       </button>
     </form>
   );

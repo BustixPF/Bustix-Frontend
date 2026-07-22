@@ -1,16 +1,50 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useFormik } from "formik";
+import { api, decodeJwtPayload, getApiErrorMessage, TOKEN_STORAGE_KEY } from "@/lib/api";
+import { useAuth } from "@/components/context/AuthContext";
+import { useToast } from "@/components/context/ToastContext";
 import { loginInitialValues, loginValidationSchema } from "@/components/forms/login/LoginSchema";
 
 const LoginForm = () => {
   const [showPassword, setShowPassword] = useState(false);
+  const { login } = useAuth();
+  const { showToast } = useToast();
+  const router = useRouter();
 
   const formik = useFormik({
     initialValues: loginInitialValues,
     validationSchema: loginValidationSchema,
-    onSubmit: () => {
+    onSubmit: async (values, { setSubmitting }) => {
+      try {
+        const { data } = await api.post("/auth/signin", values);
+        window.localStorage.setItem(TOKEN_STORAGE_KEY, data.token);
+
+        const payload = decodeJwtPayload(data.token);
+        let name = values.email;
+        if (payload?.id) {
+          try {
+            const { data: profile } = await api.get(`/users/${payload.id}`);
+            name = profile.name ?? values.email;
+          } catch {
+            // si falla el perfil, seguimos con el email como nombre
+          }
+        }
+
+        login({ name, email: values.email });
+        showToast({ type: "success", title: "Sesión iniciada", message: data.message });
+        router.push("/cliente/dashboard");
+      } catch (error) {
+        showToast({
+          type: "error",
+          title: "No se pudo iniciar sesión",
+          message: getApiErrorMessage(error, "Revisa tus credenciales e intenta de nuevo"),
+        });
+      } finally {
+        setSubmitting(false);
+      }
     },
   });
 
@@ -81,9 +115,10 @@ const LoginForm = () => {
 
       <button
         type="submit"
-        className="mt-4 w-full rounded-full bg-primary py-3 text-sm font-bold text-primary-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+        disabled={formik.isSubmitting}
+        className="mt-4 w-full rounded-full bg-primary py-3 text-sm font-bold text-primary-foreground transition-colors hover:bg-accent hover:text-accent-foreground disabled:opacity-60"
       >
-        Iniciar sesión
+        {formik.isSubmitting ? "Iniciando sesión..." : "Iniciar sesión"}
       </button>
     </form>
   );

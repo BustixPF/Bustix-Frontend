@@ -1,7 +1,10 @@
 "use client";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useFormik } from "formik";
 import EyeIcon from "@/components/forms/register/EyeIcon";
+import { api, getApiErrorMessage } from "@/lib/api";
+import { useToast } from "@/components/context/ToastContext";
 import {
   companyRegisterInitialValues,
   companyRegisterValidationSchema,
@@ -10,11 +13,37 @@ import {
 const CompanyRegisterForm = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const { showToast } = useToast();
+  const router = useRouter();
 
   const formik = useFormik({
     initialValues: companyRegisterInitialValues,
     validationSchema: companyRegisterValidationSchema,
-    onSubmit: () => {
+    onSubmit: async (values, { setSubmitting }) => {
+      try {
+        // El backend aún no tiene auth para empresas: solo crea el registro
+        // (name, nit, email). phone/password se validan en el form pero
+        // todavía no los recibe la entidad Company.
+        await api.post("/companies", {
+          name: values.companyName,
+          nit: values.nit,
+          email: values.email,
+        });
+        showToast({
+          type: "success",
+          title: "Empresa registrada",
+          message: "Te contactaremos para habilitar el acceso a tu cuenta.",
+        });
+        router.push("/");
+      } catch (error) {
+        showToast({
+          type: "error",
+          title: "No se pudo registrar la empresa",
+          message: getApiErrorMessage(error, "Intenta de nuevo en unos minutos"),
+        });
+      } finally {
+        setSubmitting(false);
+      }
     },
   });
 
@@ -175,9 +204,10 @@ const CompanyRegisterForm = () => {
 
       <button
         type="submit"
-        className="mt-5 w-full rounded-full bg-primary py-3 text-sm font-bold text-primary-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+        disabled={formik.isSubmitting}
+        className="mt-5 w-full rounded-full bg-primary py-3 text-sm font-bold text-primary-foreground transition-colors hover:bg-accent hover:text-accent-foreground disabled:opacity-60"
       >
-        Registrar empresa
+        {formik.isSubmitting ? "Registrando..." : "Registrar empresa"}
       </button>
     </form>
   );

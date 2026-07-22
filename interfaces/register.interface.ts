@@ -1,5 +1,6 @@
 export interface passengerRegisterFormValues {
   fullName: string;
+  dni: string;
   email: string;
   phone: string;
   password: string;
