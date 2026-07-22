@@ -33,7 +33,11 @@ export const companyRegisterValidationSchema = Yup.object({
     .required("Teléfono obligatorio"),
   password: Yup.string()
     .min(8, "Mínimo 8 caracteres")
-    .max(50, "Máximo 50 caracteres")
+    .max(15, "Máximo 15 caracteres")
+    .matches(
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).+$/,
+      "Debe incluir mayúscula, minúscula, número y símbolo"
+    )
     .required("Contraseña obligatoria"),
   confirmPassword: Yup.string()
     .oneOf([Yup.ref("password")], "Las contraseñas no coinciden")

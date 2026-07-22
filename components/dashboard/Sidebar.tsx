@@ -3,7 +3,6 @@ import { dashboardUser, featuredRoute } from "@/data/dashboard";
 import { formatCOP } from "@/data/home";
 
 const NAV_ITEMS = [
-  { label: "Inicio", href: "/" },
   { label: "Buscar viaje", href: "/#rutas-populares" },
   { label: "Mis viajes", href: "/cliente/dashboard" },
   { label: "Tiquetes", href: "#" },
@@ -41,7 +40,7 @@ const Sidebar = () => {
       </nav>
 
       <div className="mt-6 rounded-xl border border-border bg-card p-5">
-        <p className="font-mono-label text-[10.5px] uppercase text-primary">Ruta destacada</p>
+        <p className="font-mono-label text-xs uppercase text-success">Ruta destacada</p>
         <h3 className="mt-4 font-display text-lg text-foreground">{featuredRoute.destination}</h3>
         <p className="mt-1 text-xs text-muted-foreground">{featuredRoute.description}</p>
         <p className="mt-6 font-mono-label text-sm font-bold text-primary">

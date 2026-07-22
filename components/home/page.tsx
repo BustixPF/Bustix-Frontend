@@ -328,6 +328,11 @@ const STATUS_CLASSES: Record<DepartureStatus, string> = {
   embarcando: "bg-primary/15 text-primary",
 };
 
+const STATUS_TEXT_CLASSES: Record<DepartureStatus, string> = {
+  "a-tiempo": "text-success",
+  embarcando: "text-primary",
+};
+
 export const UpcomingDepartures = () => {
   return (
     <section id="proximas-salidas" className="bustix-dark bg-background px-8 py-16">
@@ -354,7 +359,11 @@ export const UpcomingDepartures = () => {
                 <tr key={departure.id} className="border-t border-border text-foreground">
                   <td className="font-mono-label px-5 py-4 font-medium">{departure.route}</td>
                   <td className="font-mono-label px-5 py-4 text-muted-foreground">{departure.company}</td>
-                  <td className="font-mono-label px-5 py-4 text-muted-foreground">{departure.departureTime}</td>
+                  <td
+                    className={`font-mono-label px-5 py-4 font-bold ${STATUS_TEXT_CLASSES[departure.status]}`}
+                  >
+                    {departure.departureTime}
+                  </td>
                   <td className="px-5 py-4">
                     <span
                       className={`font-mono-label inline-flex items-center rounded-full px-3 py-1 text-xs font-bold ${STATUS_CLASSES[departure.status]}`}
