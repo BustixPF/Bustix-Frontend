@@ -2,9 +2,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useFormik } from "formik";
+import { toast } from "sonner";
 import EyeIcon from "@/components/forms/register/EyeIcon";
 import { api, getApiErrorMessage } from "@/lib/api";
-import { useToast } from "@/components/context/ToastContext";
 import {
   companyRegisterInitialValues,
   companyRegisterValidationSchema,
@@ -13,7 +13,6 @@ import {
 const CompanyRegisterForm = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const { showToast } = useToast();
   const router = useRouter();
 
   const formik = useFormik({
@@ -29,17 +28,13 @@ const CompanyRegisterForm = () => {
           nit: values.nit,
           email: values.email,
         });
-        showToast({
-          type: "success",
-          title: "Empresa registrada",
-          message: "Te contactaremos para habilitar el acceso a tu cuenta.",
+        toast.success("Empresa registrada", {
+          description: "Te contactaremos para habilitar el acceso a tu cuenta.",
         });
         router.push("/");
       } catch (error) {
-        showToast({
-          type: "error",
-          title: "No se pudo registrar la empresa",
-          message: getApiErrorMessage(error, "Intenta de nuevo en unos minutos"),
+        toast.error("No se pudo registrar la empresa", {
+          description: getApiErrorMessage(error, "Intenta de nuevo en unos minutos"),
         });
       } finally {
         setSubmitting(false);

@@ -37,6 +37,11 @@ const Navbar = () => {
           </Link>
         )}
 
+        {/* TODO: quitar este acceso directo cuando exista login real de empresas */}
+        <Link href="/empresa/dashboard" className="navbar-link">
+          Dashboard Empresa
+        </Link>
+
         {user ? (
           <>
             <button

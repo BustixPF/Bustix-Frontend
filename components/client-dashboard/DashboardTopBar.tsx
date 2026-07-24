@@ -1,7 +1,12 @@
-import { dashboardUser } from "@/data/dashboard";
+"use client";
+import { useAuth } from "@/components/context/AuthContext";
 
 const DashboardTopBar = () => {
-  const firstName = dashboardUser.name.split(" ")[0];
+  const { user } = useAuth();
+
+  if (!user) return null;
+
+  const firstName = user.name.split(" ")[0];
 
   return (
     <div>
