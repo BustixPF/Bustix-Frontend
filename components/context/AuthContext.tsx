@@ -2,8 +2,13 @@
 import { createContext, useContext, useEffect, useState } from "react";
 
 export interface AuthUser {
+  id: string;
   name: string;
   email: string;
+  role: string;
+  dni?: number;
+  phone?: number;
+  address?: string | null;
 }
 
 interface AuthContextValue {

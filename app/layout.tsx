@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
+import { Toaster } from "sonner";
 import "./globals.css";
 import { workSans, jetbrainsMono, bigShouldersDisplay } from "./fonts";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { AuthProvider } from "@/components/context/AuthContext";
-import { ToastProvider } from "@/components/context/ToastContext";
 
 export const metadata: Metadata = {
   title: "Bustix",
@@ -23,11 +23,23 @@ export default function RootLayout({
     >
       <body className="min-h-screen font-sans">
         <AuthProvider>
-          <ToastProvider>
-            <Navbar />
-            {children}
-            <Footer />
-          </ToastProvider>
+          <Navbar />
+          {children}
+          <Footer />
+          <Toaster
+            position="top-right"
+            closeButton
+            toastOptions={{
+              classNames: {
+                toast: "rounded-xl! border-2! bg-card! p-4! shadow-xl!",
+                title: "text-sm! font-bold! text-card-foreground!",
+                description: "text-xs! text-muted-foreground!",
+                success: "border-success!",
+                error: "border-destructive!",
+                info: "border-secondary!",
+              },
+            }}
+          />
         </AuthProvider>
       </body>
     </html>
