@@ -2,10 +2,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useFormik } from "formik";
+import { toast } from "sonner";
 import EyeIcon from "@/components/forms/register/EyeIcon";
-import { api, getApiErrorMessage, TOKEN_STORAGE_KEY } from "@/lib/api";
+import { api, decodeJwtPayload, fetchUserProfile, getApiErrorMessage, TOKEN_STORAGE_KEY } from "@/lib/api";
 import { useAuth } from "@/components/context/AuthContext";
-import { useToast } from "@/components/context/ToastContext";
 import {
   passengerRegisterInitialValues,
   passengerRegisterValidationSchema,
@@ -15,7 +15,6 @@ const PassengerRegisterForm = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { login } = useAuth();
-  const { showToast } = useToast();
   const router = useRouter();
 
   const formik = useFormik({
@@ -37,14 +36,23 @@ const PassengerRegisterForm = () => {
           password: values.password,
         });
         window.localStorage.setItem(TOKEN_STORAGE_KEY, signInData.token);
-        login({ name: values.fullName, email: values.email });
-        showToast({ type: "success", title: "Cuenta creada", message: signUpData.message });
+
+        const payload = decodeJwtPayload(signInData.token);
+        const profile = await fetchUserProfile(signInData.token);
+
+        login(
+          profile ?? {
+            id: payload?.id ?? "",
+            name: values.fullName,
+            email: values.email,
+            role: payload?.roles?.[0] ?? "user",
+          }
+        );
+        toast.success("Cuenta creada", { description: signUpData.message });
         router.push("/cliente/dashboard");
       } catch (error) {
-        showToast({
-          type: "error",
-          title: "No se pudo crear la cuenta",
-          message: getApiErrorMessage(error, "Intenta de nuevo en unos minutos"),
+        toast.error("No se pudo crear la cuenta", {
+          description: getApiErrorMessage(error, "Intenta de nuevo en unos minutos"),
         });
       } finally {
         setSubmitting(false);

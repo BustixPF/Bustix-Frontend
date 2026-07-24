@@ -41,3 +41,24 @@ export const decodeJwtPayload = (token: string): JwtPayload | null => {
     return null;
   }
 };
+
+export interface UserProfile {
+  id: string;
+  name: string;
+  email: string;
+  dni: number;
+  phone: number;
+  address: string | null;
+  role: string;
+}
+
+export const fetchUserProfile = async (token: string): Promise<UserProfile | null> => {
+  const payload = decodeJwtPayload(token);
+  if (!payload?.id) return null;
+  try {
+    const { data } = await api.get(`/users/${payload.id}`);
+    return data;
+  } catch {
+    return null;
+  }
+};

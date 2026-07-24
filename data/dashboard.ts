@@ -1,13 +1,5 @@
 import { formatCOP } from "@/data/home";
 
-export interface DashboardUser {
-  name: string;
-  initials: string;
-  role: string;
-  email: string;
-  memberSince: string;
-}
-
 export type KpiTrend = "up" | "neutral";
 
 export interface DashboardKpi {
@@ -53,14 +45,6 @@ export interface FeaturedRoute {
   description: string;
   priceFrom: number;
 }
-
-export const dashboardUser: DashboardUser = {
-  name: "Jose Avendaño",
-  initials: "JA",
-  role: "Pasajero",
-  email: "jose.avendano@mail.com",
-  memberSince: "Marzo 2026",
-};
 
 export const dashboardKpis: DashboardKpi[] = [
   { id: "proximo-viaje", label: "Próximo viaje", value: "2 días", helper: "Medellín → Bogotá", trend: "neutral" },
