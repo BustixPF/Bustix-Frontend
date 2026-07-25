@@ -9,7 +9,9 @@ import {
   decodeJwtPayload,
   fetchUserProfile,
   getApiErrorMessage,
-  DEMO_COMPANY_ID,
+  getDashboardPathForRole,
+  getRoleFromPayload,
+  getUserIdFromPayload,
   TOKEN_STORAGE_KEY,
 } from "@/lib/api";
 import { useAuth } from "@/components/context/AuthContext";
@@ -30,11 +32,11 @@ const LoginForm = () => {
 
         const payload = decodeJwtPayload(data.token);
         const profile = await fetchUserProfile(data.token);
-        const role = profile?.role ?? payload?.roles?.[0] ?? "user";
+        const role = profile?.role ?? getRoleFromPayload(payload) ?? "user";
 
         login(
           profile ?? {
-            id: payload?.id ?? "",
+            id: getUserIdFromPayload(payload) ?? "",
             name: values.email,
             email: values.email,
             role,
@@ -45,11 +47,7 @@ const LoginForm = () => {
         // TODO: usar el companyId real cuando el backend vincule un usuario "admin" con su empresa.
         // "superAdmin" todavía cae al dashboard de cliente: el backend hoy no lo distingue de "user"
         // en el JWT (ver auth.service.ts signIn) y tampoco existe un dashboard de admin todavía.
-        if (role === "admin") {
-          router.push(`/empresa/dashboard/${DEMO_COMPANY_ID}`);
-        } else {
-          router.push("/cliente/dashboard");
-        }
+        router.push(getDashboardPathForRole(role));
       } catch (error) {
         toast.error("No se pudo iniciar sesión", {
           description: getApiErrorMessage(error, "Revisa tus credenciales e intenta de nuevo"),
