@@ -9,7 +9,7 @@ interface SeatMapProps {
 const LEGEND = [
   { label: "Disponible", className: "border border-border bg-card" },
   { label: "Seleccionado", className: "border border-primary bg-primary" },
-  { label: "Ocupado", className: "border border-border bg-muted" },
+  { label: "Ocupado", className: "border border-muted-foreground bg-muted-foreground" },
 ] as const;
 
 const SeatMap = ({ floor, selectedSeats, onToggleSeat }: SeatMapProps) => {
@@ -32,7 +32,7 @@ const SeatMap = ({ floor, selectedSeats, onToggleSeat }: SeatMapProps) => {
       </div>
 
       <div className="mt-6 w-full overflow-x-auto">
-        <div className="flex w-fit flex-col gap-3 sm:gap-4">
+        <div className="mx-auto flex w-fit flex-col gap-3 sm:gap-4">
           {floor.rows.map((row) => {
             const half = Math.ceil(row.seats.length / 2);
             const leftSeats = row.seats.slice(0, half);
@@ -101,7 +101,7 @@ const SeatButton = ({ seatId, status, isSelected, onToggle }: SeatButtonProps) =
       aria-pressed={isSelected}
       className={`flex h-8 w-8 items-center justify-center rounded-lg text-xs font-semibold transition-colors sm:h-9 sm:w-9 ${
         isOccupied
-          ? "cursor-not-allowed border border-border bg-muted text-muted-foreground"
+          ? "cursor-not-allowed border border-muted-foreground bg-muted-foreground text-background"
           : isSelected
             ? "border border-primary bg-primary text-primary-foreground"
             : "border border-border bg-card text-card-foreground hover:border-primary"

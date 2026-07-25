@@ -138,7 +138,7 @@ const AsientoPageContent = () => {
                           : "border border-border text-muted-foreground hover:border-primary"
                       }`}
                     >
-                      Piso {f.floor} · {f.seatType}
+                      Piso {f.floor}
                     </button>
                   ))}
                 </div>
