@@ -104,7 +104,7 @@ const LoginForm = () => {
       </label>
 
       <div className="mt-2 text-right">
-        <Link href="/auth/forgot-password" className="text-xs font-semibold text-accent hover:underline">
+        <Link href="/auth/forgot-password" prefetch={false} className="text-xs font-semibold text-accent hover:underline">
           ¿Olvidaste tu contraseña?
         </Link>
       </div>
