@@ -93,6 +93,11 @@ const Navbar = () => {
           Dashboard Empresa
         </Link>
 
+        {/* TODO: quitar este acceso directo cuando haya un flujo real para llegar a /viajes */}
+        <Link href="/viajes" className="navbar-link">
+          Viajes
+        </Link>
+
         {user ? (
           <>
             <button
