@@ -255,6 +255,7 @@ export const PopularRoutes = () => {
             <span className="text-xs font-semibold text-muted-foreground">Fecha</span>
             <input
               type="date"
+              autoComplete="off"
               value={date}
               onChange={(e) => setDate(e.target.value)}
               className="rounded-lg border border-border bg-muted px-3 py-2 text-sm text-card-foreground outline-none focus:border-primary"
