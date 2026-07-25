@@ -90,7 +90,7 @@ const SkylineSilhouette = () => (
 
 export const Hero = () => {
   return (
-    <section className="bustix-dark relative bg-background px-8 pb-20 pt-14 md:pt-20">
+    <section className="bustix-dark relative bg-background px-4 pb-20 pt-14 sm:px-8 md:pt-20">
       <div className="mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-2">
         <div>
           <p className="flex items-center gap-2 font-mono-label text-xs uppercase text-primary">
@@ -192,7 +192,7 @@ export const PopularRoutes = () => {
   const hasActiveFilters = origin !== "Todos" || destination !== "Todos" || company !== "Todos" || date !== "";
 
   return (
-    <section id="rutas-populares" className="bg-background px-8 pb-20 pt-14">
+    <section id="rutas-populares" className="bg-background px-4 pb-20 pt-14 sm:px-8">
       <div className="mx-auto max-w-6xl">
         <div className="flex items-end justify-between">
           <div>
@@ -215,8 +215,11 @@ export const PopularRoutes = () => {
           <label className="flex flex-col gap-1">
             <span className="text-xs font-semibold text-muted-foreground">Origen</span>
             <select
+              id="rutas-populares-origin"
+              name="origin"
               value={origin}
               onChange={(e) => setOrigin(e.target.value)}
+              autoComplete="off"
               className="rounded-lg border border-border bg-muted px-3 py-2 text-sm text-card-foreground outline-none focus:border-primary"
             >
               {origins.map((o) => (
@@ -228,8 +231,11 @@ export const PopularRoutes = () => {
           <label className="flex flex-col gap-1">
             <span className="text-xs font-semibold text-muted-foreground">Destino</span>
             <select
+              id="rutas-populares-destination"
+              name="destination"
               value={destination}
               onChange={(e) => setDestination(e.target.value)}
+              autoComplete="off"
               className="rounded-lg border border-border bg-muted px-3 py-2 text-sm text-card-foreground outline-none focus:border-primary"
             >
               {destinations.map((d) => (
@@ -241,8 +247,11 @@ export const PopularRoutes = () => {
           <label className="flex flex-col gap-1">
             <span className="text-xs font-semibold text-muted-foreground">Empresa</span>
             <select
+              id="rutas-populares-company"
+              name="company"
               value={company}
               onChange={(e) => setCompany(e.target.value)}
+              autoComplete="off"
               className="rounded-lg border border-border bg-muted px-3 py-2 text-sm text-card-foreground outline-none focus:border-primary"
             >
               {companies.map((c) => (
@@ -255,6 +264,8 @@ export const PopularRoutes = () => {
             <span className="text-xs font-semibold text-muted-foreground">Fecha</span>
             <input
               type="date"
+              id="rutas-populares-date"
+              name="date"
               autoComplete="off"
               value={date}
               onChange={(e) => setDate(e.target.value)}
@@ -336,7 +347,7 @@ const STATUS_TEXT_CLASSES: Record<DepartureStatus, string> = {
 
 export const UpcomingDepartures = () => {
   return (
-    <section id="proximas-salidas" className="bustix-dark bg-background px-8 py-16">
+    <section id="proximas-salidas" className="bustix-dark bg-background px-4 py-16 sm:px-8">
       <div className="mx-auto max-w-6xl">
         <h2 className="font-display text-2xl text-foreground sm:text-3xl">
           Próximas salidas
@@ -386,7 +397,7 @@ export const UpcomingDepartures = () => {
 
 export const HowItWorks = () => {
   return (
-    <section id="como-funciona" className="bustix-dark bg-background px-8 py-16">
+    <section id="como-funciona" className="bustix-dark bg-background px-4 py-16 sm:px-8">
       <div className="mx-auto max-w-6xl">
         <h2 className="font-display text-2xl text-foreground sm:text-3xl">Cómo funciona</h2>
         <p className="mt-2 text-sm text-muted-foreground">
@@ -421,7 +432,7 @@ const BENEFIT_ICONS: Record<BenefitIcon, ComponentType<{ className?: string }>> 
 
 export const Benefits = () => {
   return (
-    <section className="bg-background px-8 py-16">
+    <section className="bg-background px-4 py-16 sm:px-8">
       <div className="mx-auto max-w-6xl">
         <p className="flex items-center gap-2 font-mono-label text-xs uppercase text-primary">
           <span className="h-1.5 w-1.5 rounded-full bg-primary" />
@@ -459,7 +470,7 @@ export const Benefits = () => {
 
 export const PartnerCompanies = () => {
   return (
-    <section id="empresas" className="bg-background px-8 py-16">
+    <section id="empresas" className="bg-background px-4 py-16 sm:px-8">
       <div className="mx-auto max-w-6xl">
         <h2 className="font-display text-2xl text-foreground sm:text-3xl">Empresas aliadas</h2>
         <p className="mt-2 text-sm text-muted-foreground">
@@ -485,8 +496,8 @@ export const PartnerCompanies = () => {
 
 export const CompanyCta = () => {
   return (
-    <section className="bg-background px-8 pb-20">
-      <div className="mx-auto flex max-w-6xl flex-col items-center gap-6 rounded-2xl bg-secondary px-8 py-10 text-center text-secondary-foreground md:flex-row md:justify-between md:text-left">
+    <section className="bg-background px-4 pb-20 sm:px-8">
+      <div className="mx-auto flex max-w-6xl flex-col items-center gap-6 rounded-2xl bg-secondary px-5 py-8 text-center text-secondary-foreground sm:px-8 sm:py-10 md:flex-row md:justify-between md:text-left">
         <div>
           <h2 className="font-display text-2xl sm:text-3xl">¿Tienes una empresa de buses?</h2>
           <p className="mt-2 max-w-md text-sm text-secondary-foreground/80">

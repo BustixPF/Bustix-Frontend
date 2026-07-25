@@ -1,7 +1,7 @@
 "use client";
 import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import ResultadosViajes from "@/components/viajes/page";
+import ResultadosViajes from "@/components/viajes/ResultadosViajes";
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
 

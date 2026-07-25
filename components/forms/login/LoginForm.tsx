@@ -4,7 +4,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useFormik } from "formik";
 import { toast } from "sonner";
-import { api, decodeJwtPayload, fetchUserProfile, getApiErrorMessage, TOKEN_STORAGE_KEY } from "@/lib/api";
+import {
+  api,
+  decodeJwtPayload,
+  fetchUserProfile,
+  getApiErrorMessage,
+  DEMO_COMPANY_ID,
+  TOKEN_STORAGE_KEY,
+} from "@/lib/api";
 import { useAuth } from "@/components/context/AuthContext";
 import { loginInitialValues, loginValidationSchema } from "@/components/forms/login/LoginSchema";
 
@@ -23,17 +30,26 @@ const LoginForm = () => {
 
         const payload = decodeJwtPayload(data.token);
         const profile = await fetchUserProfile(data.token);
+        const role = profile?.role ?? payload?.roles?.[0] ?? "user";
 
         login(
           profile ?? {
             id: payload?.id ?? "",
             name: values.email,
             email: values.email,
-            role: payload?.roles?.[0] ?? "user",
+            role,
           }
         );
         toast.success("Sesión iniciada", { description: data.message });
-        router.push("/cliente/dashboard");
+
+        // TODO: usar el companyId real cuando el backend vincule un usuario "admin" con su empresa.
+        // "superAdmin" todavía cae al dashboard de cliente: el backend hoy no lo distingue de "user"
+        // en el JWT (ver auth.service.ts signIn) y tampoco existe un dashboard de admin todavía.
+        if (role === "admin") {
+          router.push(`/empresa/dashboard/${DEMO_COMPANY_ID}`);
+        } else {
+          router.push("/cliente/dashboard");
+        }
       } catch (error) {
         toast.error("No se pudo iniciar sesión", {
           description: getApiErrorMessage(error, "Revisa tus credenciales e intenta de nuevo"),

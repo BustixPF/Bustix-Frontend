@@ -12,7 +12,7 @@ const STATUS_CLASSES: Record<TripStatus, string> = {
 
 const TripHistoryCard = () => {
   return (
-    <div className="rounded-2xl border border-border bg-card p-6 md:p-8">
+    <div className="rounded-2xl border border-border bg-card p-4 sm:p-6 md:p-8">
       <h2 className="font-display text-lg text-card-foreground">Historial de viajes</h2>
 
       <div className="mt-4 overflow-x-auto">

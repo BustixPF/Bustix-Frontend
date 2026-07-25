@@ -1,3 +1,4 @@
+"use client";
 import Link from "next/link";
 import AuthSidePanel from "@/components/auth/AuthSidePanel";
 import LoginForm from "@/components/forms/login/LoginForm";
@@ -20,7 +21,7 @@ export default function LoginPage() {
       />
 
       <div className="flex flex-1 items-center justify-center bg-background px-6 py-16">
-        <div className="w-full max-w-md rounded-3xl border border-border bg-card p-10 shadow-xl">
+        <div className="w-full max-w-md rounded-3xl border border-border bg-card p-6 shadow-xl sm:p-10">
           <h2 className="text-center font-display text-2xl text-card-foreground">
             Inicia sesión
           </h2>
@@ -36,24 +37,18 @@ export default function LoginPage() {
             <span className="h-2 w-2 rounded-full border border-border bg-card" />
           </div>
 
-          <div className="mt-4 grid grid-cols-2 gap-3">
+          <div className="mt-4">
             <button
               type="button"
-              className="flex items-center justify-center gap-2 rounded-lg border border-border py-2.5 text-sm font-medium text-card-foreground transition-colors hover:border-primary"
+              onClick={() => {
+                window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google`;
+              }}
+              className="flex w-full items-center justify-center gap-2 rounded-lg border border-border py-2.5 text-sm font-medium text-card-foreground transition-colors hover:border-primary"
             >
               <span className="flex h-5 w-5 items-center justify-center rounded-full border border-border text-[10px] font-bold">
                 G
               </span>
               Google
-            </button>
-            <button
-              type="button"
-              className="flex items-center justify-center gap-2 rounded-lg border border-border py-2.5 text-sm font-medium text-card-foreground transition-colors hover:border-primary"
-            >
-              <span className="flex h-5 w-5 items-center justify-center rounded-full border border-border text-[10px] font-bold">
-                f
-              </span>
-              Facebook
             </button>
           </div>
 

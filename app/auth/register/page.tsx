@@ -27,7 +27,7 @@ export default function RegisterPage() {
           Iniciar sesión →
         </Link>
 
-        <div className="w-full max-w-md rounded-3xl border border-border bg-card p-10 shadow-xl">
+        <div className="w-full max-w-md rounded-3xl border border-border bg-card p-6 shadow-xl sm:p-10">
           <h2 className="text-center font-display text-2xl text-card-foreground">
             Crea tu cuenta
           </h2>

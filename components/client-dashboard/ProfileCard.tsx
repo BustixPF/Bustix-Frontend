@@ -9,7 +9,7 @@ const ProfileCard = () => {
   if (!user) return null;
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-6">
+    <div className="rounded-2xl border border-border bg-card p-4 sm:p-6">
       <div className="flex items-center gap-3">
         <span className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary text-base font-bold text-secondary-foreground">
           {getInitials(user.name)}
