@@ -2,8 +2,8 @@ import Link from "next/link";
 
 const SearchCtaCard = () => {
   return (
-    <div className="rounded-2xl bg-secondary p-8 text-secondary-foreground">
-      <h2 className="font-display text-xl leading-tight whitespace-nowrap">
+    <div className="rounded-2xl bg-secondary p-4 text-secondary-foreground sm:p-6 md:p-8">
+      <h2 className="font-display text-lg leading-tight whitespace-nowrap sm:text-xl">
         ¿A dónde vas hoy?
       </h2>
       <p className="mt-4 text-sm text-secondary-foreground/80">

@@ -8,7 +8,7 @@ const TONE_CLASSES: Record<NotificationTone, string> = {
 
 const NotificationsCard = () => {
   return (
-    <div className="rounded-2xl border border-border bg-card p-6">
+    <div className="rounded-2xl border border-border bg-card p-4 sm:p-6">
       <h3 className="font-display text-base text-card-foreground">Notificaciones</h3>
 
       <ul className="mt-4 flex flex-col gap-4">

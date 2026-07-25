@@ -2,7 +2,7 @@ import { occupancyAverage } from "@/data/companyDashboard";
 
 const QuickActionsCard = () => {
   return (
-    <div className="rounded-2xl border border-border bg-card p-6">
+    <div className="rounded-2xl border border-border bg-card p-4 sm:p-6">
       <h2 className="font-display text-lg text-card-foreground">Acciones rápidas</h2>
 
       <div className="mt-4 flex flex-col gap-3">

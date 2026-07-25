@@ -62,3 +62,22 @@ export const fetchUserProfile = async (token: string): Promise<UserProfile | nul
     return null;
   }
 };
+
+export interface Company {
+  id: string;
+  name: string;
+  nit: string;
+  email: string;
+}
+
+// TODO: quitar cuando el backend vincule un usuario "admin" con su empresa real.
+export const DEMO_COMPANY_ID = "8b87b95c-331b-4a5b-9ab8-4cd9352dfa7f";
+
+export const fetchCompany = async (companyId: string): Promise<Company | null> => {
+  try {
+    const { data } = await api.get(`/companies/${companyId}`);
+    return data;
+  } catch {
+    return null;
+  }
+};
