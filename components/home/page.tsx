@@ -299,13 +299,13 @@ export const PopularRoutes = () => {
                       COP · desde
                     </p>
                   </div>
-                  <a
-                    href="#"
+                  <Link
+                    href={`/viajes?origen=${encodeURIComponent(route.origin)}&destino=${encodeURIComponent(route.destination)}`}
                     className="flex items-center gap-1 text-sm font-semibold text-accent hover:underline"
                   >
                     Ver horarios
                     <ArrowRight className="h-3.5 w-3.5" />
-                  </a>
+                  </Link>
                 </div>
               </article>
             ))}
