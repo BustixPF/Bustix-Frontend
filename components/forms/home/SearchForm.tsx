@@ -44,6 +44,7 @@ const SearchForm = () => {
           <input
             type="text"
             name="origin"
+            autoComplete="off"
             value={formik.values.origin}
             onChange={formik.handleChange}
             onBlur={formik.handleBlur}
@@ -67,6 +68,7 @@ const SearchForm = () => {
           <input
             type="text"
             name="destination"
+            autoComplete="off"
             value={formik.values.destination}
             onChange={formik.handleChange}
             onBlur={formik.handleBlur}
@@ -83,6 +85,7 @@ const SearchForm = () => {
           <input
             type="date"
             name="departureDate"
+            autoComplete="off"
             value={formik.values.departureDate}
             onChange={formik.handleChange}
             onBlur={formik.handleBlur}
@@ -97,6 +100,7 @@ const SearchForm = () => {
           <input
             type="date"
             name="returnDate"
+            autoComplete="off"
             value={formik.values.returnDate}
             onChange={formik.handleChange}
             onBlur={formik.handleBlur}
