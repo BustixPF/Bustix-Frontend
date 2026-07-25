@@ -59,6 +59,7 @@ const EditProfileForm = () => {
         <input
           type="text"
           name="name"
+          autoComplete="name"
           value={formik.values.name}
           onChange={formik.handleChange}
           onBlur={formik.handleBlur}
@@ -89,6 +90,7 @@ const EditProfileForm = () => {
         <input
           type="email"
           name="email"
+          autoComplete="email"
           value={formik.values.email}
           onChange={formik.handleChange}
           onBlur={formik.handleBlur}
@@ -106,6 +108,7 @@ const EditProfileForm = () => {
         <input
           type="tel"
           name="phone"
+          autoComplete="tel"
           value={formik.values.phone}
           onChange={formik.handleChange}
           onBlur={formik.handleBlur}
@@ -123,6 +126,7 @@ const EditProfileForm = () => {
         <input
           type="text"
           name="address"
+          autoComplete="street-address"
           placeholder="Opcional"
           value={formik.values.address}
           onChange={formik.handleChange}
@@ -148,6 +152,7 @@ const EditProfileForm = () => {
             <input
               type={showPassword ? "text" : "password"}
               name="password"
+              autoComplete="new-password"
               placeholder="••••••••••"
               value={formik.values.password}
               onChange={formik.handleChange}
@@ -176,6 +181,7 @@ const EditProfileForm = () => {
             <input
               type={showConfirmPassword ? "text" : "password"}
               name="confirmPassword"
+              autoComplete="new-password"
               placeholder="••••••••••"
               value={formik.values.confirmPassword}
               onChange={formik.handleChange}

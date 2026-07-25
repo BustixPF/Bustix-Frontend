@@ -2,11 +2,8 @@ import axios from "axios";
 
 export const TOKEN_STORAGE_KEY = "bustix_token";
 
-const fallbackApiUrl = "http://localhost:3000";
-const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL ?? fallbackApiUrl;
-
 export const api = axios.create({
-  baseURL: apiBaseUrl,
+  baseURL: process.env.NEXT_PUBLIC_API_URL,
   headers: {
     "Content-Type": "application/json",
   },

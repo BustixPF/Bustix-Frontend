@@ -69,6 +69,7 @@ const PassengerRegisterForm = () => {
         <input
           type="text"
           name="fullName"
+          autoComplete="name"
           placeholder="Jose Avendaño"
           value={formik.values.fullName}
           onChange={formik.handleChange}
@@ -105,6 +106,7 @@ const PassengerRegisterForm = () => {
         <input
           type="email"
           name="email"
+          autoComplete="email"
           placeholder="tú@correo.com"
           value={formik.values.email}
           onChange={formik.handleChange}
@@ -123,6 +125,7 @@ const PassengerRegisterForm = () => {
         <input
           type="tel"
           name="phone"
+          autoComplete="tel"
           placeholder="+57 300 000 0000"
           value={formik.values.phone}
           onChange={formik.handleChange}
@@ -142,6 +145,7 @@ const PassengerRegisterForm = () => {
           <input
             type={showPassword ? "text" : "password"}
             name="password"
+            autoComplete="new-password"
             placeholder="••••••••••"
             value={formik.values.password}
             onChange={formik.handleChange}
@@ -170,6 +174,7 @@ const PassengerRegisterForm = () => {
           <input
             type={showConfirmPassword ? "text" : "password"}
             name="confirmPassword"
+            autoComplete="new-password"
             placeholder="••••••••••"
             value={formik.values.confirmPassword}
             onChange={formik.handleChange}

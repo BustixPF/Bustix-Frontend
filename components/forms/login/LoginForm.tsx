@@ -53,6 +53,7 @@ const LoginForm = () => {
         <input
           type="email"
           name="email"
+          autoComplete="email"
           placeholder="tú@correo.com"
           value={formik.values.email}
           onChange={formik.handleChange}
@@ -72,6 +73,7 @@ const LoginForm = () => {
           <input
             type={showPassword ? "text" : "password"}
             name="password"
+            autoComplete="current-password"
             placeholder="••••••••••"
             value={formik.values.password}
             onChange={formik.handleChange}
