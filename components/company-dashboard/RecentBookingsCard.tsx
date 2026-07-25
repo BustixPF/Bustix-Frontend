@@ -12,7 +12,7 @@ const PAYMENT_CLASSES: Record<PaymentStatus, string> = {
 
 const RecentBookingsCard = () => {
   return (
-    <div className="rounded-2xl border border-border bg-card p-6">
+    <div className="rounded-2xl border border-border bg-card p-4 sm:p-6">
       <h2 className="font-display text-lg text-card-foreground">Reservas recientes</h2>
 
       <div className="mt-4 overflow-x-auto">

@@ -11,7 +11,7 @@ const DashboardTopBar = () => {
   return (
     <div>
       <div>
-        <h1 className="font-display text-3xl text-foreground">Mis viajes</h1>
+        <h1 className="font-display text-2xl text-foreground sm:text-3xl">Mis viajes</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Bienvenido de nuevo, {firstName}.
         </p>

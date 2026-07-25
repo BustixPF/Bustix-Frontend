@@ -2,11 +2,11 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { toast } from "sonner";
 import {
   getTripsForRoute,
   buildDateOptions,
   formatDateLabel,
+  TOTAL_COMPANIES_LABEL,
   type Trip,
 } from "@/data/viajes";
 import { formatCOP } from "@/data/home";
@@ -35,7 +35,7 @@ interface ResultadosViajesProps {
 const ResultadosViajes = ({ origin, destination, dateISO, passengers }: ResultadosViajesProps) => {
   const router = useRouter();
   const [selectedDate, setSelectedDate] = useState(dateISO);
-  const [passengerCount, setPassengerCount] = useState(passengers); // ← nuevo
+  const [passengerCount, setPassengerCount] = useState(passengers);
   const [sortKey, setSortKey] = useState<SortKey>("precio");
 
   const dateOptions = useMemo(() => buildDateOptions(dateISO), [dateISO]);
@@ -52,9 +52,8 @@ const ResultadosViajes = ({ origin, destination, dateISO, passengers }: Resultad
   );
 
   const handleReserve = (trip: Trip) => {
-    toast.info("Selección de asiento", {
-      description: `${trip.company} · próximamente vas a poder elegir tu silla aquí.`,
-    });
+    const query = `origen=${encodeURIComponent(origin)}&destino=${encodeURIComponent(destination)}&fecha=${selectedDate}&pasajeros=${passengerCount}`;
+    router.push(`/viajes/${trip.id}/asiento?${query}`);
   };
 
   return (
@@ -111,7 +110,7 @@ const ResultadosViajes = ({ origin, destination, dateISO, passengers }: Resultad
           <button
             type="button"
             onClick={() => router.push("/")}
-            className="ml-auto rounded-full bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+            className="w-full rounded-full bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground transition-colors hover:bg-accent hover:text-accent-foreground sm:ml-auto sm:w-auto"
           >
             Actualizar búsqueda
           </button>
@@ -128,7 +127,7 @@ const ResultadosViajes = ({ origin, destination, dateISO, passengers }: Resultad
             </p>
           </div>
           <p className="text-sm text-muted-foreground">
-            18 empresas · {sortedTrips.length} viajes encontrados
+            {TOTAL_COMPANIES_LABEL} empresas · {sortedTrips.length} viajes encontrados
           </p>
         </div>
 
@@ -205,7 +204,9 @@ const ResultadosViajes = ({ origin, destination, dateISO, passengers }: Resultad
                   </span>
                   <div>
                     <p className="text-sm font-bold text-card-foreground">{trip.company}</p>
-                    <p className="text-xs text-muted-foreground">{trip.busType}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {trip.busType} · {trip.totalSeats} puestos
+                    </p>
                   </div>
                 </div>
 

@@ -23,7 +23,7 @@ const QrCodeIcon = () => (
 
 const ActiveTicketCard = () => {
   return (
-    <div className="rounded-2xl bg-card p-6 shadow-sm md:p-8">
+    <div className="rounded-2xl bg-card p-4 shadow-sm sm:p-6 md:p-8">
       <div className="flex items-start justify-between">
         <p className="font-mono-label text-xs uppercase text-muted-foreground">Tiquete activo</p>
         <span className="rounded-full bg-secondary/15 px-4 py-1 text-xs font-bold text-secondary">
@@ -31,7 +31,7 @@ const ActiveTicketCard = () => {
         </span>
       </div>
 
-      <h2 className="mt-5 font-display text-2xl text-card-foreground sm:text-3xl">
+      <h2 className="mt-5 font-display text-xl text-card-foreground sm:text-2xl md:text-3xl">
         {activeTicket.route}
       </h2>
       <p className="mt-1 text-sm text-muted-foreground">
@@ -39,13 +39,13 @@ const ActiveTicketCard = () => {
       </p>
 
       <div className="relative mt-8 flex items-center" aria-hidden="true">
-        <span className="absolute -left-8 h-4 w-4 rounded-full bg-background md:-left-10" />
+        <span className="absolute -left-6 h-4 w-4 rounded-full bg-background sm:-left-8 md:-left-10" />
         <span className="h-0.5 w-full border-t-2 border-dashed border-border" />
-        <span className="absolute -right-8 h-4 w-4 rounded-full bg-background md:-right-10" />
+        <span className="absolute -right-6 h-4 w-4 rounded-full bg-background sm:-right-8 md:-right-10" />
       </div>
 
       <div className="mt-8 flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">
-        <div className="flex flex-wrap gap-8">
+        <div className="flex flex-wrap gap-4 sm:gap-8">
           <div>
             <p className="font-mono-label text-[10.5px] uppercase text-muted-foreground">
               Salida

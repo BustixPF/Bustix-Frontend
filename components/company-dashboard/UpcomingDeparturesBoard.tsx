@@ -14,7 +14,7 @@ const STATUS_CLASSES: Record<CompanyDepartureStatus, string> = {
 
 const UpcomingDeparturesBoard = () => {
   return (
-    <div className="bustix-dark rounded-2xl border border-border bg-card p-6">
+    <div className="bustix-dark rounded-2xl border border-border bg-card p-4 sm:p-6">
       <div className="flex items-center justify-between">
         <h2 className="font-display text-lg text-foreground">Próximas salidas</h2>
         <span className="font-mono-label text-xs uppercase text-muted-foreground">

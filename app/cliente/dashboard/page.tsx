@@ -14,7 +14,7 @@ export default function ClientDashboardPage() {
       <div className="flex min-h-screen bg-background">
         <Sidebar />
 
-        <main className="flex-1 px-6 py-8 md:px-10 md:py-10">
+        <main className="flex-1 px-4 py-6 sm:px-6 sm:py-8 md:px-10 md:py-10">
           <DashboardTopBar />
           <KpiRow />
 
