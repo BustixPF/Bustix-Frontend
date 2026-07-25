@@ -1,6 +1,6 @@
 "use client";
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { useAuth } from '@/components/context/AuthContext'
 
 const BellIcon = () => (
@@ -10,13 +10,64 @@ const BellIcon = () => (
   </svg>
 )
 
+const BOOKING_STEPS = [
+  { step: 1, label: 'Buscar' },
+  { step: 2, label: 'Elegir asiento' },
+  { step: 3, label: 'Pagar' },
+]
+
+const BookingStepper = ({ activeStep }: { activeStep: number }) => (
+  <nav className="bustix-dark flex items-center justify-between bg-background px-8 py-4">
+    <Link href="/" className="flex items-center gap-2">
+      <span className="h-2.5 w-2.5 rounded-full bg-primary" />
+      <span className="font-display text-2xl text-foreground">BusTix</span>
+    </Link>
+
+    <ol className="flex items-center gap-3">
+      {BOOKING_STEPS.map(({ step, label }, index) => {
+        const isActive = step === activeStep
+        const isLast = index === BOOKING_STEPS.length - 1
+        return (
+          <li key={step} className="flex items-center gap-3">
+            <span className="flex items-center gap-2">
+              <span
+                className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${
+                  isActive
+                    ? 'bg-primary text-primary-foreground'
+                    : 'border border-border text-muted-foreground'
+                }`}
+              >
+                {step}
+              </span>
+              <span
+                className={`font-mono-label text-xs uppercase ${
+                  isActive ? 'text-foreground' : 'text-muted-foreground'
+                }`}
+              >
+                {label}
+              </span>
+            </span>
+            {!isLast && <span className="h-px w-8 bg-border" />}
+          </li>
+        )
+      })}
+    </ol>
+  </nav>
+)
+
 const Navbar = () => {
   const { user, logout } = useAuth()
   const router = useRouter()
+  const pathname = usePathname()
 
   const handleLogout = () => {
     logout()
     router.push('/')
+  }
+
+  if (pathname?.startsWith('/viajes')) {
+
+    return <BookingStepper activeStep={1} />
   }
 
   return (

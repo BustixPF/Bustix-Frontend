@@ -53,6 +53,7 @@ const LoginForm = () => {
         <input
           type="email"
           name="email"
+          autoComplete="email"
           placeholder="tú@correo.com"
           value={formik.values.email}
           onChange={formik.handleChange}
@@ -72,6 +73,7 @@ const LoginForm = () => {
           <input
             type={showPassword ? "text" : "password"}
             name="password"
+            autoComplete="current-password"
             placeholder="••••••••••"
             value={formik.values.password}
             onChange={formik.handleChange}
@@ -104,7 +106,7 @@ const LoginForm = () => {
       </label>
 
       <div className="mt-2 text-right">
-        <Link href="/auth/forgot-password" className="text-xs font-semibold text-accent hover:underline">
+        <Link href="/auth/forgot-password" prefetch={false} className="text-xs font-semibold text-accent hover:underline">
           ¿Olvidaste tu contraseña?
         </Link>
       </div>
