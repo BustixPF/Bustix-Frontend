@@ -11,6 +11,7 @@ import {
   TOKEN_STORAGE_KEY,
 } from "@/lib/api";
 import { useAuth } from "@/components/context/AuthContext";
+import { consumeReservationRedirect } from "@/lib/reservation-redirect";
 import LoadingScreen from "@/components/LoadingScreen";
 
 const GoogleCallbackContent = () => {
@@ -49,7 +50,9 @@ const GoogleCallbackContent = () => {
         }
       );
       toast.success("Sesión iniciada con Google");
-      router.replace(getDashboardPathForRole(role));
+
+      const pendingReservation = consumeReservationRedirect();
+      router.replace(pendingReservation ?? getDashboardPathForRole(role));
     })();
 
     return () => {
