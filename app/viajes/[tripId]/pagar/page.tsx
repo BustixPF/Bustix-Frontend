@@ -19,8 +19,10 @@ const PagarPageContent = () => {
   const origin = searchParams.get("origen") ?? "Medellín (Ant.)";
   const destination = searchParams.get("destino") ?? "Bogotá (D.C.)";
   const dateISO = searchParams.get("fecha") ?? todayISO();
+  const passengers = Number(searchParams.get("pasajeros")) || 1;
   const seatsParam = searchParams.get("seats") ?? "";
-  const seatIds = seatsParam ? seatsParam.split(",") : [];
+  const seatKeys = seatsParam ? seatsParam.split(",") : [];
+  const seatIds = seatKeys.map((key) => key.split("-")[1] ?? key);
 
   const trip = getTripById(tripId);
 
@@ -48,6 +50,15 @@ const PagarPageContent = () => {
   };
 
   return (
+    <>
+    <div className="flex items-center text-left pl-15 pt-8">
+          <Link
+            href={`/viajes/${trip.id}/asiento?origen=${encodeURIComponent(origin)}&destino=${encodeURIComponent(destination)}&fecha=${dateISO}&pasajeros=${passengers}&seats=${encodeURIComponent(seatsParam)}`}
+            className="mt-2 inline-block text-sm text-accent hover:underline"
+          >
+            ← Volver a la selección de asientos
+          </Link>
+      </div>
     <div className="flex min-h-screen items-center justify-center bg-background px-8 py-8">
       <div className="w-full max-w-md rounded-xl border border-border bg-card p-6">
         <p className="font-mono-label text-xs uppercase text-muted-foreground">Resumen de la compra</p>
@@ -88,6 +99,7 @@ const PagarPageContent = () => {
         </button>
       </div>
     </div>
+    </>
   );
 };
 
