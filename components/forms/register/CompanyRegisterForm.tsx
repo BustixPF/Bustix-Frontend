@@ -20,9 +20,7 @@ const CompanyRegisterForm = () => {
     validationSchema: companyRegisterValidationSchema,
     onSubmit: async (values, { setSubmitting }) => {
       try {
-        // El backend aún no tiene auth para empresas: solo crea el registro
-        // (name, nit, email). phone/password se validan en el form pero
-        // todavía no los recibe la entidad Company.
+
         await api.post("/companies", {
           name: values.companyName,
           nit: values.nit,
@@ -104,6 +102,7 @@ const CompanyRegisterForm = () => {
         <span className="font-mono-label text-xs uppercase text-muted-foreground">
           Teléfono
         </span>
+        <p className="text-xs text-muted-foreground">Debe tener 7 dígitos</p>
         <input
           type="tel"
           name="phone"

@@ -1,3 +1,5 @@
+import { popularRoutes } from "@/data/home";
+
 export type SeatType = "Convencional" | "Semi-cama" | "Cama";
 
 export type SeatStatus = "disponible" | "ocupado";
@@ -191,8 +193,34 @@ const MOCK_TRIPS: Trip[] = [
   },
 ];
 
-export function getTripsForRoute(_origin: string, _destination: string): Trip[] {
-  return MOCK_TRIPS;
+const WEEKDAY_FULL = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+
+function normalizeCityName(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // quita tildes
+    .replace(/\(.*?\)/g, "") // quita "(Ant.)", "(Valle)", etc.
+    .trim()
+    .toLowerCase();
+}
+
+export function findKnownRoute(origin: string, destination: string) {
+  const o = normalizeCityName(origin);
+  const d = normalizeCityName(destination);
+  return popularRoutes.find(
+    (route) => normalizeCityName(route.origin) === o && normalizeCityName(route.destination) === d
+  );
+}
+
+export function isDateAvailableForRoute(origin: string, destination: string, dateISO: string): boolean {
+  const route = findKnownRoute(origin, destination);
+  if (!route) return false;
+  const weekday = WEEKDAY_FULL[new Date(`${dateISO}T00:00:00`).getDay()];
+  return route.availableDays.includes(weekday);
+}
+
+export function getTripsForRoute(origin: string, destination: string): Trip[] {
+  return findKnownRoute(origin, destination) ? MOCK_TRIPS : [];
 }
 
 export function getTripById(id: string): Trip | undefined {

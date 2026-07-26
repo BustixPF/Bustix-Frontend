@@ -122,6 +122,7 @@ const PassengerRegisterForm = () => {
         <span className="font-mono-label text-xs uppercase text-muted-foreground">
           Teléfono
         </span>
+        <p className="text-xs text-muted-foreground">Debe tener 7 dígitos</p>
         <input
           type="tel"
           name="phone"

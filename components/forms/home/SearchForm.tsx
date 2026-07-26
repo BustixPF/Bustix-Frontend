@@ -1,5 +1,7 @@
 "use client";
 import { useFormik } from "formik";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { searchInitialValues, searchValidationSchema } from "@/components/forms/home/SearchSchema";
 
 const ArrowLeftRight = ({ className }: { className?: string }) => (
@@ -11,10 +13,14 @@ const Search = ({ className }: { className?: string }) => (
 );
 
 const SearchForm = () => {
+  const router = useRouter();
+
   const formik = useFormik({
     initialValues: searchInitialValues,
     validationSchema: searchValidationSchema,
-    onSubmit: () => {
+    onSubmit: (values) => {
+      const query = `origen=${encodeURIComponent(values.origin)}&destino=${encodeURIComponent(values.destination)}&fecha=${values.departureDate}`;
+      router.push(`/viajes?${query}`);
     },
   });
 
@@ -26,9 +32,22 @@ const SearchForm = () => {
     });
   };
 
+  const handleFormSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!formik.values.departureDate) {
+      toast.error("Falta la fecha de ida", {
+        description: "Elige una fecha para poder buscar los buses disponibles.",
+      });
+      return;
+    }
+
+    formik.handleSubmit(event);
+  };
+
   return (
     <form
-      onSubmit={formik.handleSubmit}
+      onSubmit={handleFormSubmit}
       noValidate
       className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-xl"
     >

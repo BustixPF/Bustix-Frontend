@@ -16,6 +16,7 @@ import {
 } from "@/lib/api";
 import { useAuth } from "@/components/context/AuthContext";
 import { loginInitialValues, loginValidationSchema } from "@/components/forms/login/LoginSchema";
+import { consumeReservationRedirect } from "@/lib/reservation-redirect";
 
 const LoginForm = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -44,9 +45,12 @@ const LoginForm = () => {
         );
         toast.success("Sesión iniciada", { description: data.message });
 
-        // TODO: usar el companyId real cuando el backend vincule un usuario "admin" con su empresa.
-        // "superAdmin" todavía cae al dashboard de cliente: el backend hoy no lo distingue de "user"
-        // en el JWT (ver auth.service.ts signIn) y tampoco existe un dashboard de admin todavía.
+        const pendingReservation = consumeReservationRedirect();
+        if (pendingReservation) {
+          router.push(pendingReservation);
+          return;
+        }
+
         router.push(getDashboardPathForRole(role));
       } catch (error) {
         toast.error("No se pudo iniciar sesión", {

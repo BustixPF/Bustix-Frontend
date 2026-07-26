@@ -2,14 +2,19 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { toast } from "sonner";
 import {
   getTripsForRoute,
   buildDateOptions,
   formatDateLabel,
+  findKnownRoute,
+  isDateAvailableForRoute,
   TOTAL_COMPANIES_LABEL,
   type Trip,
 } from "@/data/viajes";
 import { formatCOP } from "@/data/home";
+import { useAuth } from "@/components/context/AuthContext";
+import { saveReservationRedirect } from "@/lib/reservation-redirect";
 
 type SortKey = "precio" | "salida" | "duracion";
 
@@ -21,9 +26,16 @@ const SORTERS: Record<SortKey, (a: Trip, b: Trip) => number> = {
 
 const SORT_LABELS: Record<SortKey, string> = {
   precio: "Precio",
-  salida: "Salida más temprano",
+  salida: "Llegada más temprano",
   duracion: "Duración",
 };
+
+const EmptyState = ({ title, message }: { title: string; message: string }) => (
+  <div className="mt-6 rounded-xl border border-dashed border-border bg-card p-8 text-center">
+    <p className="text-sm font-bold text-card-foreground">{title}</p>
+    <p className="mt-1 text-sm text-muted-foreground">{message}</p>
+  </div>
+);
 
 interface ResultadosViajesProps {
   origin: string;
@@ -34,12 +46,31 @@ interface ResultadosViajesProps {
 
 const ResultadosViajes = ({ origin, destination, dateISO, passengers }: ResultadosViajesProps) => {
   const router = useRouter();
+  const { user, isLoading } = useAuth();
   const [selectedDate, setSelectedDate] = useState(dateISO);
   const [passengerCount, setPassengerCount] = useState(passengers);
   const [sortKey, setSortKey] = useState<SortKey>("precio");
+  const [originValue, setOriginValue] = useState(origin);
+  const [destinationValue, setDestinationValue] = useState(destination);
+
+  const handleSwapLocations = () => {
+    setOriginValue(destinationValue);
+    setDestinationValue(originValue);
+  };
 
   const dateOptions = useMemo(() => buildDateOptions(dateISO), [dateISO]);
-  const trips = useMemo(() => getTripsForRoute(origin, destination), [origin, destination]);
+  const knownRoute = useMemo(
+    () => findKnownRoute(originValue, destinationValue),
+    [originValue, destinationValue]
+  );
+  const dateAvailable = useMemo(
+    () => isDateAvailableForRoute(originValue, destinationValue, selectedDate),
+    [originValue, destinationValue, selectedDate]
+  );
+  const trips = useMemo(
+    () => getTripsForRoute(originValue, destinationValue),
+    [originValue, destinationValue]
+  );
 
   const availableTrips = useMemo(
     () => trips.filter((trip) => trip.seatsAvailable >= passengerCount),
@@ -52,8 +83,19 @@ const ResultadosViajes = ({ origin, destination, dateISO, passengers }: Resultad
   );
 
   const handleReserve = (trip: Trip) => {
-    const query = `origen=${encodeURIComponent(origin)}&destino=${encodeURIComponent(destination)}&fecha=${selectedDate}&pasajeros=${passengerCount}`;
-    router.push(`/viajes/${trip.id}/asiento?${query}`);
+    const query = `origen=${encodeURIComponent(originValue)}&destino=${encodeURIComponent(destinationValue)}&fecha=${selectedDate}&pasajeros=${passengerCount}`;
+    const target = `/viajes/${trip.id}/asiento?${query}`;
+
+    if (!isLoading && !user) {
+      saveReservationRedirect(target);
+      toast.info("Inicia sesión para continuar", {
+        description: "Necesitas una cuenta para reservar tu asiento. Te devolvemos ahí apenas ingreses.",
+      });
+      router.push("/auth/login");
+      return;
+    }
+
+    router.push(target);
   };
 
   return (
@@ -70,14 +112,19 @@ const ResultadosViajes = ({ origin, destination, dateISO, passengers }: Resultad
         <div className="mt-4 flex flex-wrap items-center gap-6 rounded-xl border border-border bg-card p-5">
           <div>
             <p className="font-mono-label text-[10.5px] uppercase text-muted-foreground">Origen</p>
-            <p className="text-sm font-bold text-card-foreground">{origin}</p>
+            <p className="text-sm font-bold text-card-foreground">{originValue}</p>
           </div>
-          <span className="flex h-7 w-7 items-center justify-center rounded-full border border-border text-muted-foreground">
+          <button
+            type="button"
+            onClick={handleSwapLocations}
+            aria-label="Intercambiar origen y destino"
+            className="flex h-7 w-7 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+          >
             ⇄
-          </span>
+          </button>
           <div>
             <p className="font-mono-label text-[10.5px] uppercase text-muted-foreground">Destino</p>
-            <p className="text-sm font-bold text-card-foreground">{destination}</p>
+            <p className="text-sm font-bold text-card-foreground">{destinationValue}</p>
           </div>
           <div>
             <p className="font-mono-label text-[10.5px] uppercase text-muted-foreground">Fecha de ida</p>
@@ -112,7 +159,7 @@ const ResultadosViajes = ({ origin, destination, dateISO, passengers }: Resultad
             onClick={() => router.push("/")}
             className="w-full rounded-full bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground transition-colors hover:bg-accent hover:text-accent-foreground sm:ml-auto sm:w-auto"
           >
-            Actualizar búsqueda
+            Restablecer búsqueda
           </button>
         </div>
 
@@ -120,7 +167,7 @@ const ResultadosViajes = ({ origin, destination, dateISO, passengers }: Resultad
         <div className="mt-8 flex flex-wrap items-end justify-between gap-2">
           <div>
             <h1 className="flex items-center gap-3 font-display text-3xl text-foreground">
-              {origin} <span className="text-accent">→</span> {destination}
+              {originValue} <span className="text-accent">→</span> {destinationValue}
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
               Elige la empresa, el horario y la fecha que mejor te queden.
@@ -177,15 +224,21 @@ const ResultadosViajes = ({ origin, destination, dateISO, passengers }: Resultad
         </div>
 
         {/* Resultados */}
-        {sortedTrips.length === 0 ? (
-          <div className="mt-6 rounded-xl border border-dashed border-border bg-card p-8 text-center">
-            <p className="text-sm font-bold text-card-foreground">
-              Ningún viaje tiene {passengerCount} puestos disponibles juntos
-            </p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Prueba con menos pasajeros o revisa otra fecha.
-            </p>
-          </div>
+        {!knownRoute ? (
+          <EmptyState
+            title="Por el momento no tenemos esa ruta"
+            message={`Aún no operamos viajes entre ${originValue} y ${destinationValue}. Prueba con otra ciudad de origen o destino.`}
+          />
+        ) : !dateAvailable ? (
+          <EmptyState
+            title="Esta ruta no viaja ese día"
+            message={`${originValue} → ${destinationValue} solo opera los ${knownRoute?.availableDays.join(", ") ?? ""}. Elige otra fecha.`}
+          />
+        ) : sortedTrips.length === 0 ? (
+          <EmptyState
+            title={`Ningún viaje tiene ${passengerCount} puestos disponibles juntos`}
+            message="Prueba con menos pasajeros o revisa otra fecha."
+          />
         ) : (
           <div className="mt-6 flex flex-col gap-4">
             {sortedTrips.map((trip) => (
