@@ -7,7 +7,7 @@ import CompanyKpiRow from "@/components/company-dashboard/CompanyKpiRow";
 import UpcomingDeparturesBoard from "@/components/company-dashboard/UpcomingDeparturesBoard";
 import RecentBookingsCard from "@/components/company-dashboard/RecentBookingsCard";
 import QuickActionsCard from "@/components/company-dashboard/QuickActionsCard";
-import RequireAuth from "@/components/auth/RequiereAuth";
+// import RequireAuth from "@/components/auth/RequiereAuth"; // bloqueo desactivado temporalmente
 import LoadingScreen from "@/components/LoadingScreen";
 import { fetchCompany, type Company } from "@/lib/api";
 import { getInitials } from "@/lib/user";
@@ -33,7 +33,7 @@ export default function CompanyDashboardPage() {
   }, [companyId]);
 
   return (
-    <RequireAuth>
+    <>
       {isLoading ? (
         <LoadingScreen />
       ) : !company ? (
@@ -59,6 +59,6 @@ export default function CompanyDashboardPage() {
           </main>
         </div>
       )}
-    </RequireAuth>
+    </>
   );
 }

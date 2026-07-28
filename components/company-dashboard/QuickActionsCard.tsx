@@ -1,6 +1,10 @@
+import { useState } from "react";
 import { occupancyAverage } from "@/data/companyDashboard";
+import NewRouteModal from "@/components/company-dashboard/NewRouteModal";
 
 const QuickActionsCard = () => {
+  const [isNewRouteOpen, setIsNewRouteOpen] = useState(false);
+
   return (
     <div className="rounded-2xl border border-border bg-card p-4 sm:p-6">
       <h2 className="font-display text-lg text-card-foreground">Acciones rápidas</h2>
@@ -8,15 +12,18 @@ const QuickActionsCard = () => {
       <div className="mt-4 flex flex-col gap-3">
         <button
           type="button"
+          onClick={() => setIsNewRouteOpen(true)}
           className="rounded-lg bg-primary py-3 text-sm font-bold text-primary-foreground transition-colors hover:brightness-95"
         >
           + Nueva ruta
         </button>
         <button
           type="button"
-          className="rounded-lg border border-secondary py-3 text-sm font-bold text-secondary transition-colors hover:bg-secondary/10"
+          disabled
+          title="Próximamente"
+          className="cursor-not-allowed rounded-lg border border-secondary py-3 text-sm font-bold text-secondary opacity-50"
         >
-          + Nuevo horario
+          + Nuevo horario (Próximamente)
         </button>
         <button
           type="button"
@@ -36,6 +43,8 @@ const QuickActionsCard = () => {
           style={{ width: `${occupancyAverage}%` }}
         />
       </div>
+
+      <NewRouteModal isOpen={isNewRouteOpen} onClose={() => setIsNewRouteOpen(false)} />
     </div>
   );
 };

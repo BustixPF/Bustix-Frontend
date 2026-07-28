@@ -2,14 +2,7 @@
 import { Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import {
-  decodeJwtPayload,
-  fetchUserProfile,
-  getDashboardPathForRole,
-  getRoleFromPayload,
-  getUserIdFromPayload,
-  TOKEN_STORAGE_KEY,
-} from "@/lib/api";
+import { fetchCurrentUser, getDashboardPathForRole } from "@/lib/api";
 import { useAuth } from "@/components/context/AuthContext";
 import { consumeReservationRedirect } from "@/lib/reservation-redirect";
 import LoadingScreen from "@/components/LoadingScreen";
@@ -20,9 +13,9 @@ const GoogleCallbackContent = () => {
   const { login } = useAuth();
 
   useEffect(() => {
+    // El backend ya dejó la cookie httpOnly puesta antes de mandarnos acá —
+    // este parámetro solo confirma que sí vinimos de un redirect real de Google.
     const token = searchParams.get("token");
-    const email = searchParams.get("email");
-    const name = searchParams.get("name");
 
     if (!token) {
       toast.error("No se pudo iniciar sesión con Google");
@@ -32,27 +25,22 @@ const GoogleCallbackContent = () => {
 
     let cancelled = false;
 
-    window.localStorage.setItem(TOKEN_STORAGE_KEY, token);
-
     (async () => {
-      const payload = decodeJwtPayload(token);
-      const profile = await fetchUserProfile(token);
-      const role = profile?.role ?? getRoleFromPayload(payload) ?? "user";
+      const profile = await fetchCurrentUser();
 
       if (cancelled) return;
 
-      login(
-        profile ?? {
-          id: getUserIdFromPayload(payload) ?? "",
-          name: name ?? email ?? "",
-          email: email ?? "",
-          role,
-        }
-      );
+      if (!profile) {
+        toast.error("No se pudo iniciar sesión con Google");
+        router.replace("/auth/login");
+        return;
+      }
+
+      login(profile);
       toast.success("Sesión iniciada con Google");
 
       const pendingReservation = consumeReservationRedirect();
-      router.replace(pendingReservation ?? getDashboardPathForRole(role));
+      router.replace(pendingReservation ?? getDashboardPathForRole(profile.role));
     })();
 
     return () => {

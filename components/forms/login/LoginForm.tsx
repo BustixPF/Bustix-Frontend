@@ -6,13 +6,9 @@ import { useFormik } from "formik";
 import { toast } from "sonner";
 import {
   api,
-  decodeJwtPayload,
-  fetchUserProfile,
+  fetchCurrentUser,
   getApiErrorMessage,
   getDashboardPathForRole,
-  getRoleFromPayload,
-  getUserIdFromPayload,
-  TOKEN_STORAGE_KEY,
 } from "@/lib/api";
 import { useAuth } from "@/components/context/AuthContext";
 import { loginInitialValues, loginValidationSchema } from "@/components/forms/login/LoginSchema";
@@ -29,20 +25,16 @@ const LoginForm = () => {
     onSubmit: async (values, { setSubmitting }) => {
       try {
         const { data } = await api.post("/auth/signin", values);
-        window.localStorage.setItem(TOKEN_STORAGE_KEY, data.token);
 
-        const payload = decodeJwtPayload(data.token);
-        const profile = await fetchUserProfile(data.token);
-        const role = profile?.role ?? getRoleFromPayload(payload) ?? "user";
+        const profile = await fetchCurrentUser();
+        if (!profile) {
+          toast.error("No se pudo iniciar sesión", {
+            description: "Intenta de nuevo en unos minutos",
+          });
+          return;
+        }
 
-        login(
-          profile ?? {
-            id: getUserIdFromPayload(payload) ?? "",
-            name: values.email,
-            email: values.email,
-            role,
-          }
-        );
+        login(profile);
         toast.success("Sesión iniciada", { description: data.message });
 
         const pendingReservation = consumeReservationRedirect();
@@ -51,7 +43,7 @@ const LoginForm = () => {
           return;
         }
 
-        router.push(getDashboardPathForRole(role));
+        router.push(getDashboardPathForRole(profile.role));
       } catch (error) {
         toast.error("No se pudo iniciar sesión", {
           description: getApiErrorMessage(error, "Revisa tus credenciales e intenta de nuevo"),

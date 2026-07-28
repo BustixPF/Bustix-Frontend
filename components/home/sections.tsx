@@ -1,19 +1,59 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { ComponentType, SVGProps } from "react";
 import Link from "next/link";
 import SearchForm from "@/components/forms/home/SearchForm";
+import { fetchRoutes, type ApiRoute } from "@/lib/api";
 import {
-  popularRoutes,
   upcomingDepartures,
   benefits,
   howItWorksSteps,
   partners,
   formatCOP,
-  weekdayFromDate,
   type BenefitIcon,
   type DepartureStatus,
 } from "@/data/home";
+
+interface PopularRouteCard {
+  id: string;
+  origin: string;
+  destination: string;
+  company: string;
+  companiesCount: number;
+  durationFrom: string;
+  price: number;
+}
+
+const formatDuration = (minutes: number) => {
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  return `${hours}h ${mins.toString().padStart(2, "0")}m`;
+};
+
+const groupRoutesForDisplay = (routes: ApiRoute[]): PopularRouteCard[] => {
+  const groups = new Map<string, ApiRoute[]>();
+  for (const route of routes) {
+    const key = `${route.origin}→${route.destination}`;
+    groups.set(key, [...(groups.get(key) ?? []), route]);
+  }
+
+  return Array.from(groups.entries()).map(([key, group]) => {
+    const cheapest = group.reduce((min, route) =>
+      Number(route.price) < Number(min.price) ? route : min
+    );
+    return {
+      id: key,
+      origin: cheapest.origin,
+      destination: cheapest.destination,
+      company: cheapest.company.name,
+      companiesCount: group.length,
+      durationFrom: formatDuration(cheapest.duration),
+      price: Number(cheapest.price),
+    };
+  });
+};
+
+const MAX_VISIBLE_ROUTES = 12;
 
 const ArrowRight = (props: SVGProps<SVGSVGElement>) => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
@@ -156,40 +196,53 @@ export const PopularRoutes = () => {
   const [origin, setOrigin] = useState("Todos");
   const [destination, setDestination] = useState("Todos");
   const [company, setCompany] = useState("Todos");
-  const [date, setDate] = useState("");
+  const [apiRoutes, setApiRoutes] = useState<ApiRoute[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchRoutes().then((routes) => {
+      if (!cancelled) {
+        setApiRoutes(routes);
+        setIsLoading(false);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const popularRoutes = useMemo(() => groupRoutesForDisplay(apiRoutes), [apiRoutes]);
 
   const origins = useMemo(
     () => ["Todos", ...Array.from(new Set(popularRoutes.map((r) => r.origin)))],
-    []
+    [popularRoutes]
   );
   const destinations = useMemo(
     () => ["Todos", ...Array.from(new Set(popularRoutes.map((r) => r.destination)))],
-    []
+    [popularRoutes]
   );
   const companies = useMemo(
     () => ["Todos", ...Array.from(new Set(popularRoutes.map((r) => r.company)))],
-    []
+    [popularRoutes]
   );
 
   const filteredRoutes = useMemo(() => {
-    const weekday = date ? weekdayFromDate(date) : null;
     return popularRoutes.filter((route) => {
       if (origin !== "Todos" && route.origin !== origin) return false;
       if (destination !== "Todos" && route.destination !== destination) return false;
       if (company !== "Todos" && route.company !== company) return false;
-      if (weekday && !route.availableDays.includes(weekday)) return false;
       return true;
     });
-  }, [origin, destination, company, date]);
+  }, [popularRoutes, origin, destination, company]);
 
   const handleReset = () => {
     setOrigin("Todos");
     setDestination("Todos");
     setCompany("Todos");
-    setDate("");
   };
 
-  const hasActiveFilters = origin !== "Todos" || destination !== "Todos" || company !== "Todos" || date !== "";
+  const hasActiveFilters = origin !== "Todos" || destination !== "Todos" || company !== "Todos";
 
   return (
     <section id="rutas-populares" className="bg-background px-4 pb-20 pt-14 sm:px-8">
@@ -260,19 +313,6 @@ export const PopularRoutes = () => {
             </select>
           </label>
 
-          <label className="flex flex-col gap-1">
-            <span className="text-xs font-semibold text-muted-foreground">Fecha</span>
-            <input
-              type="date"
-              id="rutas-populares-date"
-              name="date"
-              autoComplete="off"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className="rounded-lg border border-border bg-muted px-3 py-2 text-sm text-card-foreground outline-none focus:border-primary"
-            />
-          </label>
-
           {hasActiveFilters && (
             <button
               type="button"
@@ -284,25 +324,29 @@ export const PopularRoutes = () => {
           )}
         </div>
 
-        {filteredRoutes.length === 0 ? (
+        {isLoading ? (
+          <p className="mt-8 rounded-xl border border-dashed border-border bg-card p-8 text-center text-sm text-muted-foreground">
+            Cargando rutas…
+          </p>
+        ) : filteredRoutes.length === 0 ? (
           <p className="mt-8 rounded-xl border border-dashed border-border bg-card p-8 text-center text-sm text-muted-foreground">
             No hay rutas que coincidan con esos filtros. Prueba con otra combinación.
           </p>
         ) : (
           <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {filteredRoutes.map((route) => (
+            {filteredRoutes.slice(0, MAX_VISIBLE_ROUTES).map((route) => (
               <article
                 key={route.id}
-                className="flex flex-col rounded-xl border border-border bg-card p-5"
+                className="flex h-full flex-col rounded-xl border border-border bg-card p-5"
               >
-                <h3 className="font-display text-base text-card-foreground">
+                <h3 className="line-clamp-2 min-h-11 font-display text-base text-card-foreground">
                   {route.origin} → {route.destination}
                 </h3>
-                <p className="mt-1 text-xs text-muted-foreground">
+                <p className="mt-1 line-clamp-2 min-h-8 text-xs text-muted-foreground">
                   {route.company} · {route.companiesCount} empresas · Desde {route.durationFrom}
                 </p>
 
-                <div className="mt-6 flex items-end justify-between">
+                <div className="mt-auto flex items-end justify-between pt-6">
                   <div>
                     <span className="font-mono-label text-lg font-bold text-secondary">
                       {formatCOP(route.price)}
