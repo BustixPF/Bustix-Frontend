@@ -159,7 +159,7 @@ const ResultadosViajes = ({ origin, destination, dateISO, passengers }: Resultad
             onClick={() => router.push("/")}
             className="w-full rounded-full bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground transition-colors hover:bg-accent hover:text-accent-foreground sm:ml-auto sm:w-auto"
           >
-            Restablecer búsqueda
+            Nueva búsqueda
           </button>
         </div>
 
