@@ -86,7 +86,7 @@ export interface Company {
 }
 
 // TODO: quitar cuando el backend vincule un usuario "admin" con su empresa real.
-export const DEMO_COMPANY_ID = "8b87b95c-331b-4a5b-9ab8-4cd9352dfa7f";
+export const DEMO_COMPANY_ID = "dacee2cc-0f36-4aaf-a107-a19a57c92475";
 
 export const getDashboardPathForRole = (role: string): string =>
   role === "admin" ? `/empresa/dashboard/${DEMO_COMPANY_ID}` : "/cliente/dashboard";
@@ -98,4 +98,13 @@ export const fetchCompany = async (companyId: string): Promise<Company | null> =
   } catch {
     return null;
   }
+};
+
+export const uploadCompanyDocument = async (companyId: string, file: File) => {
+  const formData = new FormData();
+  formData.append("file", file);
+  const { data } = await api.post(`/file-upload/company/${companyId}`, formData, {
+    headers: { "Content-Type": undefined },
+  });
+  return data;
 };
