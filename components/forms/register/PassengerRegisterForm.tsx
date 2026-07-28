@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useFormik } from "formik";
 import { toast } from "sonner";
 import EyeIcon from "@/components/forms/register/EyeIcon";
-import { api, decodeJwtPayload, fetchUserProfile, getApiErrorMessage, TOKEN_STORAGE_KEY } from "@/lib/api";
+import { api, fetchCurrentUser, getApiErrorMessage } from "@/lib/api";
 import { useAuth } from "@/components/context/AuthContext";
 import {
   passengerRegisterInitialValues,
@@ -31,23 +31,20 @@ const PassengerRegisterForm = () => {
           phone: Number(values.phone),
         });
 
-        const { data: signInData } = await api.post("/auth/signin", {
+        await api.post("/auth/signin", {
           email: values.email,
           password: values.password,
         });
-        window.localStorage.setItem(TOKEN_STORAGE_KEY, signInData.token);
 
-        const payload = decodeJwtPayload(signInData.token);
-        const profile = await fetchUserProfile(signInData.token);
+        const profile = await fetchCurrentUser();
+        if (!profile) {
+          toast.error("No se pudo iniciar sesión", {
+            description: "Tu cuenta se creó, intenta iniciar sesión de nuevo",
+          });
+          return;
+        }
 
-        login(
-          profile ?? {
-            id: payload?.id ?? "",
-            name: values.fullName,
-            email: values.email,
-            role: payload?.roles?.[0] ?? "user",
-          }
-        );
+        login(profile);
         toast.success("Cuenta creada", { description: signUpData.message });
         router.push("/cliente/dashboard");
       } catch (error) {
@@ -122,12 +119,11 @@ const PassengerRegisterForm = () => {
         <span className="font-mono-label text-xs uppercase text-muted-foreground">
           Teléfono
         </span>
-        <p className="text-xs text-muted-foreground">Debe tener 7 dígitos</p>
         <input
           type="tel"
           name="phone"
           autoComplete="tel"
-          placeholder="+57 300 000 0000"
+          placeholder="300 000 0000"
           value={formik.values.phone}
           onChange={formik.handleChange}
           onBlur={formik.handleBlur}

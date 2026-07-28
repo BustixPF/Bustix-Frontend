@@ -171,12 +171,11 @@ const CompanyRegisterForm = () => {
         <span className="font-mono-label text-xs uppercase text-muted-foreground">
           Teléfono
         </span>
-        <p className="text-xs text-muted-foreground">Debe tener 7 dígitos</p>
         <input
           type="tel"
           name="phone"
           autoComplete="tel"
-          placeholder="+57 300 000 0000"
+          placeholder="300 000 0000"
           value={formik.values.phone}
           onChange={formik.handleChange}
           onBlur={formik.handleBlur}

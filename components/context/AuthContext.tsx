@@ -1,5 +1,6 @@
 "use client";
 import { createContext, useContext, useEffect, useState } from "react";
+import { fetchCurrentUser, logoutRequest } from "@/lib/api";
 
 export interface AuthUser {
   id: string;
@@ -18,8 +19,6 @@ interface AuthContextValue {
   logout: () => void;
 }
 
-const STORAGE_KEY = "bustix_auth_user";
-
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
@@ -27,24 +26,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    try {
-      const stored = window.localStorage.getItem(STORAGE_KEY);
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      if (stored) setUser(JSON.parse(stored));
-    } catch {
-    } finally {
-      setIsLoading(false);
-    }
+    let cancelled = false;
+    // La cookie httpOnly es la fuente de verdad — le preguntamos al backend
+    // quién está logueado en vez de confiar en algo guardado localmente.
+    fetchCurrentUser().then((profile) => {
+      if (!cancelled) {
+        setUser(profile);
+        setIsLoading(false);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const login = (nextUser: AuthUser) => {
     setUser(nextUser);
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(nextUser));
   };
 
   const logout = () => {
     setUser(null);
-    window.localStorage.removeItem(STORAGE_KEY);
+    void logoutRequest();
   };
 
   return (
