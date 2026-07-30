@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -9,9 +9,9 @@ import {
   formatDateLabel,
   findKnownRoute,
   isDateAvailableForRoute,
-  TOTAL_COMPANIES_LABEL,
   type Trip,
 } from "@/data/viajes";
+import { fetchRoutes, type ApiRoute } from "@/lib/api";
 import { formatCOP } from "@/data/home";
 import { useAuth } from "@/components/context/AuthContext";
 import { saveReservationRedirect } from "@/lib/reservation-redirect";
@@ -53,24 +53,41 @@ const ResultadosViajes = ({ origin, destination, dateISO, passengers }: Resultad
   const [originValue, setOriginValue] = useState(origin);
   const [destinationValue, setDestinationValue] = useState(destination);
 
+  const [isLoadingTrips, setIsLoadingTrips] = useState(true);
+  const [knownRoute, setKnownRoute] = useState<ApiRoute | undefined>(undefined);
+  const [dateAvailable, setDateAvailable] = useState(false);
+  const [trips, setTrips] = useState<Trip[]>([]);
+  const [companiesCount, setCompaniesCount] = useState(0);
+
   const handleSwapLocations = () => {
     setOriginValue(destinationValue);
     setDestinationValue(originValue);
   };
 
   const dateOptions = useMemo(() => buildDateOptions(dateISO), [dateISO]);
-  const knownRoute = useMemo(
-    () => findKnownRoute(originValue, destinationValue),
-    [originValue, destinationValue]
-  );
-  const dateAvailable = useMemo(
-    () => isDateAvailableForRoute(originValue, destinationValue, selectedDate),
-    [originValue, destinationValue, selectedDate]
-  );
-  const trips = useMemo(
-    () => getTripsForRoute(originValue, destinationValue),
-    [originValue, destinationValue]
-  );
+
+  useEffect(() => {
+    let cancelled = false;
+    setIsLoadingTrips(true);
+
+    Promise.all([
+      findKnownRoute(originValue, destinationValue),
+      isDateAvailableForRoute(originValue, destinationValue, selectedDate),
+      getTripsForRoute(originValue, destinationValue),
+      fetchRoutes(),
+    ]).then(([route, available, tripList, allRoutes]) => {
+      if (cancelled) return;
+      setKnownRoute(route);
+      setDateAvailable(available);
+      setTrips(tripList);
+      setCompaniesCount(new Set(allRoutes.map((r) => r.companyId)).size);
+      setIsLoadingTrips(false);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [originValue, destinationValue, selectedDate]);
 
   const availableTrips = useMemo(
     () => trips.filter((trip) => trip.seatsAvailable >= passengerCount),
@@ -174,7 +191,7 @@ const ResultadosViajes = ({ origin, destination, dateISO, passengers }: Resultad
             </p>
           </div>
           <p className="text-sm text-muted-foreground">
-            {TOTAL_COMPANIES_LABEL} empresas · {sortedTrips.length} viajes encontrados
+            {companiesCount} empresas · {sortedTrips.length} viajes encontrados
           </p>
         </div>
 
@@ -224,7 +241,9 @@ const ResultadosViajes = ({ origin, destination, dateISO, passengers }: Resultad
         </div>
 
         {/* Resultados */}
-        {!knownRoute ? (
+        {isLoadingTrips ? (
+          <EmptyState title="Buscando viajes…" message="Un momento, estamos consultando los horarios disponibles." />
+        ) : !knownRoute ? (
           <EmptyState
             title="Por el momento no tenemos esa ruta"
             message={`Aún no operamos viajes entre ${originValue} y ${destinationValue}. Prueba con otra ciudad de origen o destino.`}
@@ -232,7 +251,7 @@ const ResultadosViajes = ({ origin, destination, dateISO, passengers }: Resultad
         ) : !dateAvailable ? (
           <EmptyState
             title="Esta ruta no viaja ese día"
-            message={`${originValue} → ${destinationValue} solo opera los ${knownRoute?.availableDays.join(", ") ?? ""}. Elige otra fecha.`}
+            message={`No encontramos viajes de ${originValue} a ${destinationValue} para esa fecha. Elige otra fecha.`}
           />
         ) : sortedTrips.length === 0 ? (
           <EmptyState
@@ -257,9 +276,7 @@ const ResultadosViajes = ({ origin, destination, dateISO, passengers }: Resultad
                   </span>
                   <div>
                     <p className="text-sm font-bold text-card-foreground">{trip.company}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {trip.busType} · {trip.totalSeats} puestos
-                    </p>
+                    <p className="text-xs text-muted-foreground">{trip.totalSeats} puestos</p>
                   </div>
                 </div>
 
@@ -271,9 +288,6 @@ const ResultadosViajes = ({ origin, destination, dateISO, passengers }: Resultad
                   <div className="flex flex-col items-center gap-1 text-muted-foreground">
                     <span className="text-xs">{trip.duration}</span>
                     <span className="h-px w-10 bg-border" />
-                    <span className="font-mono-label text-[10.5px] uppercase text-secondary">
-                      {trip.seatType}
-                    </span>
                   </div>
                   <div>
                     <p className="font-display text-lg text-card-foreground">{trip.arrivalTime}</p>

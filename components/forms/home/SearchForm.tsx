@@ -111,15 +111,19 @@ const SearchForm = () => {
         </label>
 
         <label className="block">
-          <span className="mb-1 block text-xs font-semibold text-muted-foreground">Fecha de vuelta</span>
+          <span className="mb-1 block text-xs font-semibold text-muted-foreground">
+            Fecha de vuelta <span className="text-muted-foreground/70">(próximamente)</span>
+          </span>
           <input
             type="date"
             name="returnDate"
             autoComplete="off"
+            disabled
+            title="La compra de ida y vuelta todavía no está disponible"
             value={formik.values.returnDate}
             onChange={formik.handleChange}
             onBlur={formik.handleBlur}
-            className="w-full rounded-lg border border-border bg-muted px-4 py-2.5 text-sm text-[var(--bustix-text-on-dark)] outline-none focus:border-primary"
+            className="w-full cursor-not-allowed rounded-lg border border-border bg-muted px-4 py-2.5 text-sm text-[var(--bustix-text-on-dark)] opacity-50 outline-none"
           />
         </label>
       </div>
