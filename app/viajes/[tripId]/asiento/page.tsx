@@ -1,12 +1,12 @@
 "use client";
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { toast } from "sonner";
 import SeatMap from "@/components/viajes/SeatMap";
 import SeatSelectionPanel, { type SelectedSeatInfo } from "@/components/viajes/SeatSelectionPanel";
 import LoadingScreen from "@/components/LoadingScreen";
-import { getTripById, formatDateLabel, seatPositionLabel } from "@/data/viajes";
+import { getTripById, formatDateLabel, seatPositionLabel, type Trip } from "@/data/viajes";
+import { fetchAvailableSeats, type ApiSeat } from "@/lib/api";
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
 
@@ -18,48 +18,45 @@ const AsientoPageContent = () => {
   const origin = searchParams.get("origen") ?? "Medellín (Ant.)";
   const destination = searchParams.get("destino") ?? "Bogotá (D.C.)";
   const dateISO = searchParams.get("fecha") ?? todayISO();
-  const passengers = Number(searchParams.get("pasajeros")) || 1;
 
-  const trip = getTripById(tripId);
+  const [isLoading, setIsLoading] = useState(true);
+  const [trip, setTrip] = useState<Trip | null>(null);
+  const [availableSeats, setAvailableSeats] = useState<ApiSeat[]>([]);
+  const [selectedSeatNumber, setSelectedSeatNumber] = useState<number | null>(null);
 
-  const [activeFloor, setActiveFloor] = useState(0);
-  const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    setIsLoading(true);
 
-  const toggleSeat = (seatKey: string) => {
-    if (!selectedSeats.includes(seatKey) && selectedSeats.length >= passengers) {
-      toast.info("Ya elegiste el máximo de asientos", {
-        description: `Buscaste para ${passengers} pasajero${passengers > 1 ? "s" : ""}. Quita un asiento para elegir otro.`,
-      });
-      return;
-    }
-
-    setSelectedSeats((current) => {
-      if (current.includes(seatKey)) {
-        return current.filter((key) => key !== seatKey);
-      }
-      if (current.length >= passengers) {
-        return current;
-      }
-      return [...current, seatKey];
+    Promise.all([getTripById(tripId), fetchAvailableSeats(tripId)]).then(([tripData, seats]) => {
+      if (cancelled) return;
+      setTrip(tripData);
+      setAvailableSeats(seats);
+      setIsLoading(false);
     });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [tripId]);
+
+  const availableSeatNumbers = useMemo(
+    () => new Set(availableSeats.map((seat) => seat.seatNumber)),
+    [availableSeats]
+  );
+
+  const toggleSeat = (seatNumber: number) => {
+    setSelectedSeatNumber((current) => (current === seatNumber ? null : seatNumber));
   };
 
-  const selectedSeatInfos: SelectedSeatInfo[] = useMemo(() => {
-    if (!trip) return [];
-    return selectedSeats.map((seatKey) => {
-      const [floorPart, seatId] = seatKey.split("-");
-      const floorNumber = Number(floorPart);
-      const floor = trip.seatMap.find((f) => f.floor === floorNumber);
-      const seatsPerRow = floor?.rows[0]?.seats.length ?? 4;
-      return {
-        seatKey,
-        id: seatId,
-        floor: floorNumber,
-        seatType: floor?.seatType ?? trip.seatType,
-        position: seatPositionLabel(seatId, seatsPerRow),
-      };
-    });
-  }, [selectedSeats, trip]);
+  const selectedSeatInfo: SelectedSeatInfo | null =
+    selectedSeatNumber === null
+      ? null
+      : { seatNumber: selectedSeatNumber, position: seatPositionLabel(selectedSeatNumber) };
+
+  if (isLoading) {
+    return <LoadingScreen />;
+  }
 
   if (!trip) {
     return (
@@ -74,12 +71,15 @@ const AsientoPageContent = () => {
     );
   }
 
-  const floor = trip.seatMap[activeFloor];
-  const query = `origen=${encodeURIComponent(origin)}&destino=${encodeURIComponent(destination)}&fecha=${dateISO}&pasajeros=${passengers}`;
+  const query = `origen=${encodeURIComponent(origin)}&destino=${encodeURIComponent(destination)}&fecha=${dateISO}`;
 
   const handleContinue = () => {
-    const seatsParam = selectedSeats.map((seatKey) => seatKey.split("-")[1]).join(",");
-    router.push(`/viajes/${trip.id}/pagar?${query}&seats=${encodeURIComponent(seatsParam)}`);
+    if (selectedSeatNumber === null) return;
+    const seat = availableSeats.find((s) => s.seatNumber === selectedSeatNumber);
+    if (!seat) return;
+    router.push(
+      `/viajes/${trip.id}/pagar?${query}&seatId=${encodeURIComponent(seat.id)}&seatNumber=${seat.seatNumber}`
+    );
   };
 
   return (
@@ -112,9 +112,7 @@ const AsientoPageContent = () => {
             </div>
           </div>
         </div>
-        <p className="mt-2 text-xs text-muted-foreground">
-          {trip.busType} · {trip.floorsCount} piso{trip.floorsCount > 1 ? "s" : ""} · {trip.totalSeats} puestos
-        </p>
+        <p className="mt-2 text-xs text-muted-foreground">{trip.totalSeats} puestos</p>
 
         <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_320px]">
           <div className="rounded-xl border border-border bg-card p-6">
@@ -125,39 +123,23 @@ const AsientoPageContent = () => {
                   Toca un asiento disponible en el mapa del bus.
                 </p>
               </div>
-              {trip.seatMap.length > 1 && (
-                <div className="flex gap-2">
-                  {trip.seatMap.map((f, index) => (
-                    <button
-                      key={f.floor}
-                      type="button"
-                      onClick={() => setActiveFloor(index)}
-                      className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
-                        index === activeFloor
-                          ? "bg-primary text-primary-foreground"
-                          : "border border-border text-muted-foreground hover:border-primary"
-                      }`}
-                    >
-                      Piso {f.floor}
-                    </button>
-                  ))}
-                </div>
-              )}
             </div>
 
             <div className="mt-6">
-              <SeatMap floor={floor} selectedSeats={selectedSeats} onToggleSeat={toggleSeat} />
+              <SeatMap
+                totalSeats={trip.totalSeats}
+                availableSeatNumbers={availableSeatNumbers}
+                selectedSeatNumber={selectedSeatNumber}
+                onToggleSeat={toggleSeat}
+              />
             </div>
           </div>
 
           <SeatSelectionPanel
-            selectedSeats={selectedSeatInfos}
+            selectedSeat={selectedSeatInfo}
             pricePerSeat={trip.price}
-            requiredSeats={passengers}
-            onRemoveSeat={(seatKey) =>
-              setSelectedSeats((current) => current.filter((key) => key !== seatKey))
-            }
-            onExpire={() => setSelectedSeats([])}
+            onRemoveSeat={() => setSelectedSeatNumber(null)}
+            onExpire={() => setSelectedSeatNumber(null)}
             onContinue={handleContinue}
           />
         </div>

@@ -1,10 +1,11 @@
-import type { SeatFloor } from "@/data/viajes";
-
 interface SeatMapProps {
-  floor: SeatFloor;
-  selectedSeats: string[];
-  onToggleSeat: (seatKey: string) => void;
+  totalSeats: number;
+  availableSeatNumbers: Set<number>;
+  selectedSeatNumber: number | null;
+  onToggleSeat: (seatNumber: number) => void;
 }
+
+const SEATS_PER_ROW = 4;
 
 const LEGEND = [
   { label: "Disponible", className: "border border-border bg-card" },
@@ -12,7 +13,13 @@ const LEGEND = [
   { label: "Ocupado", className: "border border-muted-foreground bg-muted-foreground" },
 ] as const;
 
-const SeatMap = ({ floor, selectedSeats, onToggleSeat }: SeatMapProps) => {
+const SeatMap = ({ totalSeats, availableSeatNumbers, selectedSeatNumber, onToggleSeat }: SeatMapProps) => {
+  const rowsCount = Math.ceil(totalSeats / SEATS_PER_ROW);
+  const rows = Array.from({ length: rowsCount }, (_, rowIndex) => {
+    const start = rowIndex * SEATS_PER_ROW + 1;
+    return Array.from({ length: SEATS_PER_ROW }, (_, i) => start + i).filter((n) => n <= totalSeats);
+  });
+
   return (
     <div className="flex flex-col items-center">
       <div className="flex flex-wrap items-center justify-center gap-4">
@@ -33,44 +40,38 @@ const SeatMap = ({ floor, selectedSeats, onToggleSeat }: SeatMapProps) => {
 
       <div className="mt-6 w-full overflow-x-auto">
         <div className="mx-auto flex w-fit flex-col gap-3 sm:gap-4">
-          {floor.rows.map((row) => {
-            const half = Math.ceil(row.seats.length / 2);
-            const leftSeats = row.seats.slice(0, half);
-            const rightSeats = row.seats.slice(half);
+          {rows.map((rowSeats, rowIndex) => {
+            const half = Math.ceil(rowSeats.length / 2);
+            const leftSeats = rowSeats.slice(0, half);
+            const rightSeats = rowSeats.slice(half);
 
             return (
-              <div key={row.row} className="flex items-center gap-3 sm:gap-6">
+              <div key={rowIndex} className="flex items-center gap-3 sm:gap-6">
                 <span className="w-10 font-mono-label text-[10.5px] uppercase text-muted-foreground sm:w-14">
-                  Fila {row.row}
+                  Fila {rowIndex + 1}
                 </span>
                 <div className="flex items-center gap-3 sm:gap-6">
                   <div className="flex gap-2">
-                    {leftSeats.map((seat) => {
-                      const seatKey = `${floor.floor}-${seat.id}`;
-                      return (
-                        <SeatButton
-                          key={seat.id}
-                          seatId={seat.id}
-                          status={seat.status}
-                          isSelected={selectedSeats.includes(seatKey)}
-                          onToggle={() => onToggleSeat(seatKey)}
-                        />
-                      );
-                    })}
+                    {leftSeats.map((seatNumber) => (
+                      <SeatButton
+                        key={seatNumber}
+                        seatNumber={seatNumber}
+                        isAvailable={availableSeatNumbers.has(seatNumber)}
+                        isSelected={selectedSeatNumber === seatNumber}
+                        onToggle={() => onToggleSeat(seatNumber)}
+                      />
+                    ))}
                   </div>
                   <div className="flex gap-2">
-                    {rightSeats.map((seat) => {
-                      const seatKey = `${floor.floor}-${seat.id}`;
-                      return (
-                        <SeatButton
-                          key={seat.id}
-                          seatId={seat.id}
-                          status={seat.status}
-                          isSelected={selectedSeats.includes(seatKey)}
-                          onToggle={() => onToggleSeat(seatKey)}
-                        />
-                      );
-                    })}
+                    {rightSeats.map((seatNumber) => (
+                      <SeatButton
+                        key={seatNumber}
+                        seatNumber={seatNumber}
+                        isAvailable={availableSeatNumbers.has(seatNumber)}
+                        isSelected={selectedSeatNumber === seatNumber}
+                        onToggle={() => onToggleSeat(seatNumber)}
+                      />
+                    ))}
                   </div>
                 </div>
               </div>
@@ -83,21 +84,21 @@ const SeatMap = ({ floor, selectedSeats, onToggleSeat }: SeatMapProps) => {
 };
 
 interface SeatButtonProps {
-  seatId: string;
-  status: "disponible" | "ocupado";
+  seatNumber: number;
+  isAvailable: boolean;
   isSelected: boolean;
   onToggle: () => void;
 }
 
-const SeatButton = ({ seatId, status, isSelected, onToggle }: SeatButtonProps) => {
-  const isOccupied = status === "ocupado";
+const SeatButton = ({ seatNumber, isAvailable, isSelected, onToggle }: SeatButtonProps) => {
+  const isOccupied = !isAvailable;
 
   return (
     <button
       type="button"
       disabled={isOccupied}
       onClick={onToggle}
-      aria-label={`Asiento ${seatId}${isOccupied ? " (ocupado)" : ""}`}
+      aria-label={`Asiento ${seatNumber}${isOccupied ? " (ocupado)" : ""}`}
       aria-pressed={isSelected}
       className={`flex h-8 w-8 items-center justify-center rounded-lg text-xs font-semibold transition-colors sm:h-9 sm:w-9 ${
         isOccupied
@@ -107,7 +108,7 @@ const SeatButton = ({ seatId, status, isSelected, onToggle }: SeatButtonProps) =
             : "border border-border bg-card text-card-foreground hover:border-primary"
       }`}
     >
-      {seatId}
+      {seatNumber}
     </button>
   );
 };

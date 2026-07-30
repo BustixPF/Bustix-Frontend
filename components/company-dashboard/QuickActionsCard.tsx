@@ -1,9 +1,43 @@
-import { useState } from "react";
-import { occupancyAverage } from "@/data/companyDashboard";
+import { useEffect, useState } from "react";
+import { fetchTrips, fetchAvailableSeats } from "@/lib/api";
 import NewRouteModal from "@/components/company-dashboard/NewRouteModal";
 
-const QuickActionsCard = () => {
+interface QuickActionsCardProps {
+  companyId: string;
+}
+
+const QuickActionsCard = ({ companyId }: QuickActionsCardProps) => {
   const [isNewRouteOpen, setIsNewRouteOpen] = useState(false);
+  const [occupancyAverage, setOccupancyAverage] = useState<number | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    fetchTrips().then(async (trips) => {
+      const companyTrips = trips.filter((trip) => trip.companyId === companyId);
+      if (companyTrips.length === 0) {
+        if (!cancelled) setOccupancyAverage(0);
+        return;
+      }
+
+      const rates = await Promise.all(
+        companyTrips.map(async (trip) => {
+          const availableSeats = await fetchAvailableSeats(trip.id);
+          const sold = trip.totalSeats - availableSeats.length;
+          return trip.totalSeats > 0 ? sold / trip.totalSeats : 0;
+        })
+      );
+
+      if (!cancelled) {
+        const average = rates.reduce((sum, rate) => sum + rate, 0) / rates.length;
+        setOccupancyAverage(Math.round(average * 100));
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [companyId]);
 
   return (
     <div className="rounded-2xl border border-border bg-card p-4 sm:p-6">
@@ -34,13 +68,15 @@ const QuickActionsCard = () => {
       </div>
 
       <div className="mt-6 flex items-center justify-between text-xs text-muted-foreground">
-        <p>Ocupación promedio hoy</p>
-        <p className="font-display text-sm text-card-foreground">{occupancyAverage}%</p>
+        <p>Ocupación promedio</p>
+        <p className="font-display text-sm text-card-foreground">
+          {occupancyAverage === null ? "—" : `${occupancyAverage}%`}
+        </p>
       </div>
       <div className="mt-2 h-2.5 w-full rounded-full bg-muted">
         <div
           className="h-2.5 rounded-full bg-secondary"
-          style={{ width: `${occupancyAverage}%` }}
+          style={{ width: `${occupancyAverage ?? 0}%` }}
         />
       </div>
 

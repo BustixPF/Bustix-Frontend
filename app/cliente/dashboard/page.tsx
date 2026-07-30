@@ -1,7 +1,6 @@
 import Sidebar from "@/components/client-dashboard/Sidebar";
 import DashboardTopBar from "@/components/client-dashboard/DashboardTopBar";
 import KpiRow from "@/components/client-dashboard/KpiRow";
-import ActiveTicketCard from "@/components/client-dashboard/ActiveTicketCard";
 import TripHistoryCard from "@/components/client-dashboard/TripHistoryCard";
 import SearchCtaCard from "@/components/client-dashboard/SearchCtaCard";
 import ProfileCard from "@/components/client-dashboard/ProfileCard";
@@ -20,7 +19,6 @@ export default function ClientDashboardPage() {
 
           <div className="mt-6 grid gap-6 xl:grid-cols-[1fr_380px]">
             <div className="flex flex-col gap-6">
-              <ActiveTicketCard />
               <TripHistoryCard />
             </div>
 

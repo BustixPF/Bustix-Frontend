@@ -86,6 +86,15 @@ export const fetchCompany = async (companyId: string): Promise<Company | null> =
   }
 };
 
+export const fetchCompanies = async (): Promise<Company[]> => {
+  try {
+    const { data } = await api.get("/companies");
+    return data;
+  } catch {
+    return [];
+  }
+};
+
 export interface ApiRoute {
   id: string;
   origin: string;
@@ -112,4 +121,91 @@ export const uploadCompanyDocument = async (companyId: string, file: File) => {
     headers: { "Content-Type": undefined },
   });
   return data;
+};
+
+export interface ApiTrip {
+  id: string;
+  companyId: string;
+  origin: string;
+  destination: string;
+  departureDate: string;
+  price: string;
+  totalSeats: number;
+}
+
+export interface ApiSeat {
+  id: string;
+  tripId: string;
+  seatNumber: number;
+  status: string;
+}
+
+export const fetchTrips = async (): Promise<ApiTrip[]> => {
+  try {
+    const { data } = await api.get("/trips");
+    return data;
+  } catch {
+    return [];
+  }
+};
+
+export const fetchTripById = async (id: string): Promise<ApiTrip | null> => {
+  try {
+    const { data } = await api.get(`/trips/${id}`);
+    return data;
+  } catch {
+    return null;
+  }
+};
+
+export const fetchAvailableSeats = async (tripId: string): Promise<ApiSeat[]> => {
+  try {
+    const { data } = await api.get(`/trips/${tripId}/seats`);
+    return data;
+  } catch {
+    return [];
+  }
+};
+
+export const PENDING_PAYMENT_KEY = "bustix_pending_payment_id";
+
+export const createCheckoutSession = async (
+  tripId: string,
+  seatId: string
+): Promise<{ url: string; paymentId: string }> => {
+  const { data } = await api.post("/payments/checkout-session", { tripId, seatId });
+  return data;
+};
+
+export interface ApiPayment {
+  id: string;
+  status: string;
+  amount: number;
+}
+
+export const fetchPayment = async (paymentId: string): Promise<ApiPayment | null> => {
+  try {
+    const { data } = await api.get(`/payments/${paymentId}`);
+    return data;
+  } catch {
+    return null;
+  }
+};
+
+export interface ApiTicket {
+  id: string;
+  origin: string;
+  destination: string;
+  price: number;
+  purchaseDate: string;
+  company: { id: string; name: string } | null;
+}
+
+export const fetchMyTickets = async (): Promise<ApiTicket[]> => {
+  try {
+    const { data } = await api.get("/dashboard/user/tickets");
+    return data;
+  } catch {
+    return [];
+  }
 };
