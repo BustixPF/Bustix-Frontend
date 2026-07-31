@@ -22,7 +22,8 @@ const AsientoPageContent = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [trip, setTrip] = useState<Trip | null>(null);
   const [availableSeats, setAvailableSeats] = useState<ApiSeat[]>([]);
-  const [selectedSeatNumber, setSelectedSeatNumber] = useState<number | null>(null);
+  const passengers = Number(searchParams.get("pasajeros")) || 1;
+  const [selectedSeatNumbers, setSelectedSeatNumbers] = useState<number[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -46,13 +47,18 @@ const AsientoPageContent = () => {
   );
 
   const toggleSeat = (seatNumber: number) => {
-    setSelectedSeatNumber((current) => (current === seatNumber ? null : seatNumber));
+    setSelectedSeatNumbers((current) => {
+      const exists = current.includes(seatNumber);
+      if (exists) return current.filter((n) => n !== seatNumber);
+      if (current.length >= passengers) return current; // prevent selecting more than allowed
+      return [...current, seatNumber];
+    });
   };
 
-  const selectedSeatInfo: SelectedSeatInfo | null =
-    selectedSeatNumber === null
-      ? null
-      : { seatNumber: selectedSeatNumber, position: seatPositionLabel(selectedSeatNumber) };
+  const selectedSeatInfoList: SelectedSeatInfo[] = selectedSeatNumbers.map((n) => ({
+    seatNumber: n,
+    position: seatPositionLabel(n),
+  }));
 
   if (isLoading) {
     return <LoadingScreen />;
@@ -71,14 +77,18 @@ const AsientoPageContent = () => {
     );
   }
 
-  const query = `origen=${encodeURIComponent(origin)}&destino=${encodeURIComponent(destination)}&fecha=${dateISO}`;
+  const query = `origen=${encodeURIComponent(origin)}&destino=${encodeURIComponent(destination)}&fecha=${dateISO}&pasajeros=${passengers}`;
 
   const handleContinue = () => {
-    if (selectedSeatNumber === null) return;
-    const seat = availableSeats.find((s) => s.seatNumber === selectedSeatNumber);
-    if (!seat) return;
+    if (selectedSeatNumbers.length === 0) return;
+    const seats = availableSeats.filter((s) => selectedSeatNumbers.includes(s.seatNumber));
+    if (seats.length !== selectedSeatNumbers.length) return;
+    const seatIds = seats.map((s) => s.id).join(",");
+    const seatNumbers = seats.map((s) => s.seatNumber).join(",");
     router.push(
-      `/viajes/${trip.id}/pagar?${query}&seatId=${encodeURIComponent(seat.id)}&seatNumber=${seat.seatNumber}`
+      `/viajes/${trip.id}/pagar?${query}&seatIds=${encodeURIComponent(seatIds)}&seatNumbers=${encodeURIComponent(
+        seatNumbers
+      )}`
     );
   };
 
@@ -122,6 +132,7 @@ const AsientoPageContent = () => {
                 <p className="mt-1 text-sm text-muted-foreground">
                   Toca un asiento disponible en el mapa del bus.
                 </p>
+                
               </div>
             </div>
 
@@ -129,18 +140,21 @@ const AsientoPageContent = () => {
               <SeatMap
                 totalSeats={trip.totalSeats}
                 availableSeatNumbers={availableSeatNumbers}
-                selectedSeatNumber={selectedSeatNumber}
+                selectedSeatNumbers={new Set(selectedSeatNumbers)}
                 onToggleSeat={toggleSeat}
               />
             </div>
           </div>
 
           <SeatSelectionPanel
-            selectedSeat={selectedSeatInfo}
+            selectedSeats={selectedSeatInfoList}
             pricePerSeat={trip.price}
-            onRemoveSeat={() => setSelectedSeatNumber(null)}
-            onExpire={() => setSelectedSeatNumber(null)}
+            onRemoveSeat={(seatNumber: number) =>
+              setSelectedSeatNumbers((cur) => cur.filter((n) => n !== seatNumber))
+            }
+            onExpire={() => setSelectedSeatNumbers([])}
             onContinue={handleContinue}
+            maxSelectable={passengers}
           />
         </div>
       </div>
