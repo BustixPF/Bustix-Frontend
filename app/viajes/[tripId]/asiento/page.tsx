@@ -2,6 +2,7 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { toast } from "sonner";
 import SeatMap from "@/components/viajes/SeatMap";
 import SeatSelectionPanel, { type SelectedSeatInfo } from "@/components/viajes/SeatSelectionPanel";
 import LoadingScreen from "@/components/LoadingScreen";
@@ -50,7 +51,12 @@ const AsientoPageContent = () => {
     setSelectedSeatNumbers((current) => {
       const exists = current.includes(seatNumber);
       if (exists) return current.filter((n) => n !== seatNumber);
-      if (current.length >= passengers) return current; // prevent selecting more than allowed
+      if (current.length >= passengers) {
+        toast.error(`Ya elegiste el máximo de asientos (${passengers})`, {
+          description: "Quita uno de la lista si quieres cambiarlo.",
+        });
+        return current;
+      }
       return [...current, seatNumber];
     });
   };
