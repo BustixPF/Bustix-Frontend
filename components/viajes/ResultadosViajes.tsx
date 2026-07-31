@@ -106,7 +106,7 @@ const ResultadosViajes = ({ origin, destination, dateISO, passengers }: Resultad
     if (!isLoading && !user) {
       saveReservationRedirect(target);
       toast.info("Inicia sesión para continuar", {
-        description: "Necesitas una cuenta para reservar tu asiento. Te devolvemos ahí apenas ingreses.",
+        description: "Necesitas una cuenta para reservar tu asiento.",
       });
       router.push("/auth/login");
       return;

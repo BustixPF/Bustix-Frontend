@@ -1,7 +1,7 @@
 interface SeatMapProps {
   totalSeats: number;
   availableSeatNumbers: Set<number>;
-  selectedSeatNumber: number | null;
+  selectedSeatNumbers: Set<number>;
   onToggleSeat: (seatNumber: number) => void;
 }
 
@@ -13,7 +13,7 @@ const LEGEND = [
   { label: "Ocupado", className: "border border-muted-foreground bg-muted-foreground" },
 ] as const;
 
-const SeatMap = ({ totalSeats, availableSeatNumbers, selectedSeatNumber, onToggleSeat }: SeatMapProps) => {
+const SeatMap = ({ totalSeats, availableSeatNumbers, selectedSeatNumbers, onToggleSeat }: SeatMapProps) => {
   const rowsCount = Math.ceil(totalSeats / SEATS_PER_ROW);
   const rows = Array.from({ length: rowsCount }, (_, rowIndex) => {
     const start = rowIndex * SEATS_PER_ROW + 1;
@@ -52,15 +52,15 @@ const SeatMap = ({ totalSeats, availableSeatNumbers, selectedSeatNumber, onToggl
                 </span>
                 <div className="flex items-center gap-3 sm:gap-6">
                   <div className="flex gap-2">
-                    {leftSeats.map((seatNumber) => (
-                      <SeatButton
-                        key={seatNumber}
-                        seatNumber={seatNumber}
-                        isAvailable={availableSeatNumbers.has(seatNumber)}
-                        isSelected={selectedSeatNumber === seatNumber}
-                        onToggle={() => onToggleSeat(seatNumber)}
-                      />
-                    ))}
+                        {leftSeats.map((seatNumber) => (
+                          <SeatButton
+                            key={seatNumber}
+                            seatNumber={seatNumber}
+                            isAvailable={availableSeatNumbers.has(seatNumber)}
+                            isSelected={selectedSeatNumbers.has(seatNumber)}
+                            onToggle={() => onToggleSeat(seatNumber)}
+                          />
+                        ))}
                   </div>
                   <div className="flex gap-2">
                     {rightSeats.map((seatNumber) => (
@@ -68,7 +68,7 @@ const SeatMap = ({ totalSeats, availableSeatNumbers, selectedSeatNumber, onToggl
                         key={seatNumber}
                         seatNumber={seatNumber}
                         isAvailable={availableSeatNumbers.has(seatNumber)}
-                        isSelected={selectedSeatNumber === seatNumber}
+                        isSelected={selectedSeatNumbers.has(seatNumber)}
                         onToggle={() => onToggleSeat(seatNumber)}
                       />
                     ))}
