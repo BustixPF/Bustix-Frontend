@@ -17,8 +17,9 @@ const PagarPageContent = () => {
   const origin = searchParams.get("origen") ?? "Medellín (Ant.)";
   const destination = searchParams.get("destino") ?? "Bogotá (D.C.)";
   const dateISO = searchParams.get("fecha") ?? todayISO();
-  const seatId = searchParams.get("seatId") ?? "";
-  const seatNumber = searchParams.get("seatNumber") ?? "";
+  const seatIds = searchParams.get("seatIds")?.split(",").filter(Boolean) ?? [];
+  const seatNumbers = searchParams.get("seatNumbers")?.split(",").filter(Boolean) ?? [];
+  const passengerCount = Number(searchParams.get("pasajeros")) || undefined;
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -41,7 +42,7 @@ const PagarPageContent = () => {
     return <LoadingScreen />;
   }
 
-  if (!trip || !seatId) {
+  if (!trip || seatIds.length === 0) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background px-8 text-center">
         <div>
@@ -59,7 +60,7 @@ const PagarPageContent = () => {
   const handleConfirm = async () => {
     setIsSubmitting(true);
     try {
-      const { url, paymentId } = await createCheckoutSession(trip.id, seatId);
+      const { url, paymentId } = await createCheckoutSession(trip.id, seatIds);
       window.sessionStorage.setItem(PENDING_PAYMENT_KEY, paymentId);
       window.location.href = url;
     } catch (error) {
@@ -74,7 +75,12 @@ const PagarPageContent = () => {
     <>
       <div className="flex items-center text-left pl-15 pt-8">
         <Link
-          href={`/viajes/${trip.id}/asiento?origen=${encodeURIComponent(origin)}&destino=${encodeURIComponent(destination)}&fecha=${dateISO}`}
+          href={`/viajes/${trip.id}/asiento?${new URLSearchParams({
+            origen: origin,
+            destino: destination,
+            fecha: dateISO,
+            pasajeros: passengerCount ? String(passengerCount) : "1",
+          }).toString()}`}
           className="mt-2 inline-block text-sm text-accent hover:underline"
         >
           ← Volver a la selección de asientos
@@ -101,14 +107,20 @@ const PagarPageContent = () => {
               <span className="font-bold text-card-foreground">{trip.departureTime}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Asiento</span>
-              <span className="font-bold text-card-foreground">{seatNumber || "—"}</span>
+              <span className="text-muted-foreground">Asientos</span>
+              <span className="font-bold text-card-foreground">{seatNumbers.join(", ") || "—"}</span>
             </div>
+            {passengerCount ? (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Pasajeros</span>
+                <span className="font-bold text-card-foreground">{passengerCount}</span>
+              </div>
+            ) : null}
           </div>
 
           <div className="mt-4 flex items-center justify-between border-t border-border pt-4">
             <span className="font-mono-label text-xs uppercase text-muted-foreground">Total</span>
-            <span className="font-display text-2xl text-foreground">{formatCOP(trip.price)}</span>
+            <span className="font-display text-2xl text-foreground">{formatCOP(trip.price * seatIds.length)}</span>
           </div>
 
           <button

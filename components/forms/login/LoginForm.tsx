@@ -12,7 +12,7 @@ import {
 } from "@/lib/api";
 import { useAuth } from "@/components/context/AuthContext";
 import { loginInitialValues, loginValidationSchema } from "@/components/forms/login/LoginSchema";
-import { consumeReservationRedirect } from "@/lib/reservation-redirect";
+import { consumeReservationRedirect, consumePendingPassengers } from "@/lib/reservation-redirect";
 
 const LoginForm = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -37,7 +37,15 @@ const LoginForm = () => {
         login(profile);
         toast.success("Sesión iniciada", { description: data.message });
 
-        const pendingReservation = consumeReservationRedirect();
+        let pendingReservation = consumeReservationRedirect();
+        const pendingPassengers = consumePendingPassengers();
+        if (pendingReservation && pendingPassengers) {
+          if (!/([?&])pasajeros=/.test(pendingReservation)) {
+            const sep = pendingReservation.includes("?") ? "&" : "?";
+            pendingReservation = `${pendingReservation}${sep}pasajeros=${pendingPassengers}`;
+          }
+        }
+
         if (pendingReservation) {
           router.push(pendingReservation);
           return;

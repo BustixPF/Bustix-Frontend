@@ -43,11 +43,12 @@ const CompanyRegisterForm = () => {
   const handleFilesSelected = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selected = event.target.files;
     if (!selected || selected.length === 0) return;
-    setFiles((prev) => [
-      ...prev,
-      ...Array.from(selected).map((file) => ({ file, status: "pending" as FileStatus })),
-    ]);
+    const newEntries: FileEntry[] = Array.from(selected).map((file) => ({
+      file,
+      status: "pending",
+    }));
     event.target.value = "";
+    setFiles((prev) => [...prev, ...newEntries]);
   };
 
   const handleRemoveFile = (index: number) => {

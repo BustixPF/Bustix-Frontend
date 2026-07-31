@@ -14,7 +14,7 @@ import {
 import { fetchRoutes, type ApiRoute } from "@/lib/api";
 import { formatCOP } from "@/data/home";
 import { useAuth } from "@/components/context/AuthContext";
-import { saveReservationRedirect } from "@/lib/reservation-redirect";
+import { savePendingPassengers, saveReservationRedirect } from "@/lib/reservation-redirect";
 
 type SortKey = "precio" | "salida" | "duracion";
 
@@ -100,13 +100,19 @@ const ResultadosViajes = ({ origin, destination, dateISO, passengers }: Resultad
   );
 
   const handleReserve = (trip: Trip) => {
-    const query = `origen=${encodeURIComponent(originValue)}&destino=${encodeURIComponent(destinationValue)}&fecha=${selectedDate}&pasajeros=${passengerCount}`;
-    const target = `/viajes/${trip.id}/asiento?${query}`;
+    const params = new URLSearchParams({
+      origen: originValue,
+      destino: destinationValue,
+      fecha: selectedDate,
+      pasajeros: String(passengerCount),
+    });
+    const target = `/viajes/${trip.id}/asiento?${params.toString()}`;
 
     if (!isLoading && !user) {
       saveReservationRedirect(target);
+      savePendingPassengers(passengerCount);
       toast.info("Inicia sesión para continuar", {
-        description: "Necesitas una cuenta para reservar tu asiento. Te devolvemos ahí apenas ingreses.",
+        description: "Necesitas una cuenta para reservar tu asiento.",
       });
       router.push("/auth/login");
       return;
@@ -320,5 +326,5 @@ const ResultadosViajes = ({ origin, destination, dateISO, passengers }: Resultad
     </div>
   );
 };
-
+  
 export default ResultadosViajes;

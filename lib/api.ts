@@ -1,9 +1,11 @@
 import axios from "axios";
 
 export const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL,
+  // Ruta relativa: pasa por el rewrite de next.config.ts (mismo origen que el
+  // navegador), no directo a Railway — así la cookie de sesión es same-site.
+  baseURL: "/api",
   // El backend autentica vía cookie httpOnly (token), no header — el navegador
-  // necesita mandar/recibir la cookie en cada request cross-origin.
+  // necesita mandar/recibir la cookie en cada request.
   withCredentials: true,
   headers: {
     "Content-Type": "application/json",
@@ -171,9 +173,9 @@ export const PENDING_PAYMENT_KEY = "bustix_pending_payment_id";
 
 export const createCheckoutSession = async (
   tripId: string,
-  seatId: string
+  seatIds: string[]
 ): Promise<{ url: string; paymentId: string }> => {
-  const { data } = await api.post("/payments/checkout-session", { tripId, seatId });
+  const { data } = await api.post("/payments/checkout-session", { tripId, seatIds });
   return data;
 };
 
