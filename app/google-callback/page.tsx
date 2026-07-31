@@ -4,7 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { fetchCurrentUser, getDashboardPathForRole } from "@/lib/api";
 import { useAuth } from "@/components/context/AuthContext";
-import { consumeReservationRedirect } from "@/lib/reservation-redirect";
+import { consumeReservationRedirect, consumePendingPassengers } from "@/lib/reservation-redirect";
 import LoadingScreen from "@/components/LoadingScreen";
 
 const GoogleCallbackContent = () => {
@@ -39,7 +39,17 @@ const GoogleCallbackContent = () => {
       login(profile);
       toast.success("Sesión iniciada con Google");
 
-      const pendingReservation = consumeReservationRedirect();
+      let pendingReservation = consumeReservationRedirect();
+      const pendingPassengers = consumePendingPassengers();
+
+      if (pendingReservation && pendingPassengers) {
+
+        if (!/([?&])pasajeros=/.test(pendingReservation)) {
+          const sep = pendingReservation.includes("?") ? "&" : "?";
+          pendingReservation = `${pendingReservation}${sep}pasajeros=${pendingPassengers}`;
+        }
+      }
+
       router.replace(pendingReservation ?? getDashboardPathForRole(profile.role));
     })();
 

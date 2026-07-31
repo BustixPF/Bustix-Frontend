@@ -14,7 +14,7 @@ import {
 import { fetchRoutes, type ApiRoute } from "@/lib/api";
 import { formatCOP } from "@/data/home";
 import { useAuth } from "@/components/context/AuthContext";
-import { saveReservationRedirect } from "@/lib/reservation-redirect";
+import { savePendingPassengers, saveReservationRedirect } from "@/lib/reservation-redirect";
 
 type SortKey = "precio" | "salida" | "duracion";
 
@@ -105,6 +105,7 @@ const ResultadosViajes = ({ origin, destination, dateISO, passengers }: Resultad
 
     if (!isLoading && !user) {
       saveReservationRedirect(target);
+      savePendingPassengers(passengerCount);
       toast.info("Inicia sesión para continuar", {
         description: "Necesitas una cuenta para reservar tu asiento.",
       });
@@ -320,5 +321,5 @@ const ResultadosViajes = ({ origin, destination, dateISO, passengers }: Resultad
     </div>
   );
 };
-
+  
 export default ResultadosViajes;

@@ -171,9 +171,9 @@ export const PENDING_PAYMENT_KEY = "bustix_pending_payment_id";
 
 export const createCheckoutSession = async (
   tripId: string,
-  seatId: string
+  seatIds: string[]
 ): Promise<{ url: string; paymentId: string }> => {
-  const { data } = await api.post("/payments/checkout-session", { tripId, seatId });
+  const { data } = await api.post("/payments/checkout-session", { tripId, seatIds });
   return data;
 };
 
