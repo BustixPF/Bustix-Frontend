@@ -75,7 +75,12 @@ const PagarPageContent = () => {
     <>
       <div className="flex items-center text-left pl-15 pt-8">
         <Link
-          href={`/viajes/${trip.id}/asiento?origen=${encodeURIComponent(origin)}&destino=${encodeURIComponent(destination)}&fecha=${dateISO}`}
+          href={`/viajes/${trip.id}/asiento?${new URLSearchParams({
+            origen: origin,
+            destino: destination,
+            fecha: dateISO,
+            pasajeros: passengerCount ? String(passengerCount) : "1",
+          }).toString()}`}
           className="mt-2 inline-block text-sm text-accent hover:underline"
         >
           ← Volver a la selección de asientos

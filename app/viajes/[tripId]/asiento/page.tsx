@@ -77,25 +77,30 @@ const AsientoPageContent = () => {
     );
   }
 
-  const query = `origen=${encodeURIComponent(origin)}&destino=${encodeURIComponent(destination)}&fecha=${dateISO}&pasajeros=${passengers}`;
+  const baseQueryParams = new URLSearchParams({
+    origen: origin,
+    destino: destination,
+    fecha: dateISO,
+    pasajeros: String(passengers),
+  });
 
   const handleContinue = () => {
-    if (selectedSeatNumbers.length === 0) return;
+    if (selectedSeatNumbers.length !== passengers) return;
     const seats = availableSeats.filter((s) => selectedSeatNumbers.includes(s.seatNumber));
     if (seats.length !== selectedSeatNumbers.length) return;
     const seatIds = seats.map((s) => s.id).join(",");
     const seatNumbers = seats.map((s) => s.seatNumber).join(",");
-    router.push(
-      `/viajes/${trip.id}/pagar?${query}&seatIds=${encodeURIComponent(seatIds)}&seatNumbers=${encodeURIComponent(
-        seatNumbers
-      )}`
-    );
+    const params = new URLSearchParams(baseQueryParams);
+    params.set("seatIds", seatIds);
+    params.set("seatNumbers", seatNumbers);
+
+    router.push(`/viajes/${trip.id}/pagar?${params.toString()}`);
   };
 
   return (
     <div className="min-h-screen bg-background px-8 py-8">
       <div className="mx-auto max-w-5xl">
-        <Link href={`/viajes?${query}`} className="text-sm font-semibold text-accent hover:underline">
+        <Link href={`/viajes?${baseQueryParams.toString()}`} className="text-sm font-semibold text-accent hover:underline">
           ← Volver a los resultados
         </Link>
 
@@ -132,7 +137,9 @@ const AsientoPageContent = () => {
                 <p className="mt-1 text-sm text-muted-foreground">
                   Toca un asiento disponible en el mapa del bus.
                 </p>
-                
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Número de pasajeros: <span className="font-semibold text-foreground">{passengers}</span>
+                </p>
               </div>
             </div>
 

@@ -100,8 +100,13 @@ const ResultadosViajes = ({ origin, destination, dateISO, passengers }: Resultad
   );
 
   const handleReserve = (trip: Trip) => {
-    const query = `origen=${encodeURIComponent(originValue)}&destino=${encodeURIComponent(destinationValue)}&fecha=${selectedDate}&pasajeros=${passengerCount}`;
-    const target = `/viajes/${trip.id}/asiento?${query}`;
+    const params = new URLSearchParams({
+      origen: originValue,
+      destino: destinationValue,
+      fecha: selectedDate,
+      pasajeros: String(passengerCount),
+    });
+    const target = `/viajes/${trip.id}/asiento?${params.toString()}`;
 
     if (!isLoading && !user) {
       saveReservationRedirect(target);
