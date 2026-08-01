@@ -13,6 +13,7 @@
     "formik": "^2.4.9",
     "next": "16.2.6",
     "react": "19.2.4",
+    "react-day-picker": "^10.0.1",
     "react-dom": "19.2.4",
     "sonner": "^2.0.7",
     "yup": "^1.7.1"

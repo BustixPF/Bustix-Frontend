@@ -1,8 +1,12 @@
 "use client";
+import { useEffect, useMemo, useState } from "react";
 import { useFormik } from "formik";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { searchInitialValues, searchValidationSchema } from "@/components/forms/home/SearchSchema";
+import { searchInitialValues, searchValidationSchema, todayISO } from "@/components/forms/home/SearchSchema";
+import { fetchTrips, type ApiTrip } from "@/lib/api";
+import { normalizeCityName } from "@/data/viajes";
+import DepartureDatePicker from "@/components/DepartureDatePicker";
 
 const ArrowLeftRight = ({ className }: { className?: string }) => (
   <span className={`flex items-center justify-center leading-none ${className ?? ""}`}>⇄</span>
@@ -14,6 +18,17 @@ const Search = ({ className }: { className?: string }) => (
 
 const SearchForm = () => {
   const router = useRouter();
+  const [trips, setTrips] = useState<ApiTrip[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchTrips().then((data) => {
+      if (!cancelled) setTrips(data);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const formik = useFormik({
     initialValues: searchInitialValues,
@@ -24,6 +39,44 @@ const SearchForm = () => {
     },
   });
 
+  const hasOriginAndDestination = Boolean(
+    formik.values.origin.trim() && formik.values.destination.trim()
+  );
+
+  // Solo cuando origen y destino coinciden con una ruta real mostramos las
+  // fechas en las que de verdad hay viajes — si no, el usuario elige a ciegas
+  // y termina en un resultado vacío en /viajes.
+  const availableDates = useMemo(() => {
+    const origin = formik.values.origin.trim();
+    const destination = formik.values.destination.trim();
+    if (!origin || !destination) return [];
+
+    const o = normalizeCityName(origin);
+    const d = normalizeCityName(destination);
+    const todayIso = todayISO();
+    const isoDates = new Set<string>();
+
+    for (const trip of trips) {
+      if (normalizeCityName(trip.origin) !== o || normalizeCityName(trip.destination) !== d) {
+        continue;
+      }
+      const iso = new Date(trip.departureDate).toISOString().slice(0, 10);
+      if (iso >= todayIso) {
+        isoDates.add(iso);
+      }
+    }
+
+    return Array.from(isoDates).sort();
+  }, [trips, formik.values.origin, formik.values.destination]);
+
+  useEffect(() => {
+    if (availableDates.length === 0) return;
+    if (!availableDates.includes(formik.values.departureDate)) {
+      formik.setFieldValue("departureDate", availableDates[0]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [availableDates]);
+
   const handleSwap = () => {
     formik.setValues({
       ...formik.values,
@@ -32,12 +85,26 @@ const SearchForm = () => {
     });
   };
 
-  const handleFormSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+
+    const errors = await formik.validateForm();
+    formik.setTouched({ origin: true, destination: true, departureDate: true });
+
+    if (errors.origin || errors.destination) {
+      return;
+    }
 
     if (!formik.values.departureDate) {
       toast.error("Falta la fecha de ida", {
         description: "Elige una fecha para poder buscar los buses disponibles.",
+      });
+      return;
+    }
+
+    if (errors.departureDate) {
+      toast.error("Fecha de ida inválida", {
+        description: errors.departureDate,
       });
       return;
     }
@@ -67,8 +134,16 @@ const SearchForm = () => {
               value={formik.values.origin}
               onChange={formik.handleChange}
               onBlur={formik.handleBlur}
-              className="w-full rounded-lg border border-border bg-muted px-4 py-2.5 text-sm text-[var(--bustix-text-on-dark)] outline-none focus:border-primary placeholder:text-muted-foreground"
+              aria-invalid={Boolean(formik.touched.origin && formik.errors.origin)}
+              className={`w-full rounded-lg border bg-muted px-4 py-2.5 text-sm text-[var(--bustix-text-on-dark)] outline-none placeholder:text-muted-foreground ${
+                formik.touched.origin && formik.errors.origin
+                  ? "border-destructive focus:border-destructive"
+                  : "border-border focus:border-primary"
+              }`}
             />
+            {formik.touched.origin && formik.errors.origin && (
+              <p className="mt-1 text-xs font-semibold text-destructive">{formik.errors.origin}</p>
+            )}
           </label>
 
           <label className="block">
@@ -81,8 +156,16 @@ const SearchForm = () => {
               value={formik.values.destination}
               onChange={formik.handleChange}
               onBlur={formik.handleBlur}
-              className="w-full rounded-lg border border-border bg-muted px-4 py-2.5 text-sm text-[var(--bustix-text-on-dark)] outline-none focus:border-primary placeholder:text-muted-foreground"
+              aria-invalid={Boolean(formik.touched.destination && formik.errors.destination)}
+              className={`w-full rounded-lg border bg-muted px-4 py-2.5 text-sm text-[var(--bustix-text-on-dark)] outline-none placeholder:text-muted-foreground ${
+                formik.touched.destination && formik.errors.destination
+                  ? "border-destructive focus:border-destructive"
+                  : "border-border focus:border-primary"
+              }`}
             />
+            {formik.touched.destination && formik.errors.destination && (
+              <p className="mt-1 text-xs font-semibold text-destructive">{formik.errors.destination}</p>
+            )}
           </label>
         </div>
 
@@ -99,15 +182,30 @@ const SearchForm = () => {
       <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
         <label className="block">
           <span className="mb-1 block text-xs font-semibold text-muted-foreground">Fecha de ida</span>
-          <input
-            type="date"
-            name="departureDate"
-            autoComplete="off"
-            value={formik.values.departureDate}
-            onChange={formik.handleChange}
-            onBlur={formik.handleBlur}
-            className="w-full rounded-lg border border-border bg-muted px-4 py-2.5 text-sm text-[var(--bustix-text-on-dark)] outline-none focus:border-primary"
-          />
+          {availableDates.length > 0 ? (
+            <DepartureDatePicker
+              value={formik.values.departureDate}
+              availableDates={availableDates}
+              onChange={(iso) => formik.setFieldValue("departureDate", iso)}
+            />
+          ) : (
+            <div
+              aria-disabled="true"
+              title={hasOriginAndDestination ? "No encontramos viajes para esa ruta" : "Elige origen y destino primero"}
+              className="flex h-10.5 w-full cursor-not-allowed items-center overflow-hidden truncate whitespace-nowrap rounded-lg border border-border bg-muted px-4 text-sm text-muted-foreground opacity-60"
+            >
+              {hasOriginAndDestination ? "Sin fechas disponibles" : "Elige origen y destino"}
+            </div>
+          )}
+          {/* Reserva el espacio siempre (con invisible) para que la tarjeta no
+              cambie de tamaño cada vez que este mensaje aparece o desaparece. */}
+          <p
+            className={`mt-1 text-xs text-muted-foreground ${
+              hasOriginAndDestination && availableDates.length === 0 ? "" : "invisible"
+            }`}
+          >
+            No encontramos viajes programados para esa ruta todavía.
+          </p>
         </label>
 
         <label className="block">

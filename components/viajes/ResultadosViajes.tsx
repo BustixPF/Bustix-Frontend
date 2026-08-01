@@ -1,32 +1,32 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { toast } from "sonner";
 import {
   getTripsForRoute,
-  buildDateOptions,
+  getAvailableDatesForRoute,
   formatDateLabel,
   findKnownRoute,
   isDateAvailableForRoute,
   type Trip,
+  type DateOption,
 } from "@/data/viajes";
 import { fetchRoutes, type ApiRoute } from "@/lib/api";
 import { formatCOP } from "@/data/home";
-import { useAuth } from "@/components/context/AuthContext";
-import { savePendingPassengers, saveReservationRedirect } from "@/lib/reservation-redirect";
+import LoadingScreen from "@/components/LoadingScreen";
+import DepartureDatePicker from "@/components/DepartureDatePicker";
 
 type SortKey = "precio" | "salida" | "duracion";
 
 const SORTERS: Record<SortKey, (a: Trip, b: Trip) => number> = {
   precio: (a, b) => a.price - b.price,
-  salida: (a, b) => a.departureTime.localeCompare(b.departureTime),
-  duracion: (a, b) => a.duration.localeCompare(b.duration),
+  salida: (a, b) => new Date(a.departureDateISO).getTime() - new Date(b.departureDateISO).getTime(),
+  duracion: (a, b) => a.durationMinutes - b.durationMinutes,
 };
 
 const SORT_LABELS: Record<SortKey, string> = {
   precio: "Precio",
-  salida: "Llegada más temprano",
+  salida: "Salida más temprano",
   duracion: "Duración",
 };
 
@@ -46,43 +46,66 @@ interface ResultadosViajesProps {
 
 const ResultadosViajes = ({ origin, destination, dateISO, passengers }: ResultadosViajesProps) => {
   const router = useRouter();
-  const { user, isLoading } = useAuth();
   const [selectedDate, setSelectedDate] = useState(dateISO);
   const [passengerCount, setPassengerCount] = useState(passengers);
   const [sortKey, setSortKey] = useState<SortKey>("precio");
   const [originValue, setOriginValue] = useState(origin);
   const [destinationValue, setDestinationValue] = useState(destination);
+  const [originInput, setOriginInput] = useState(origin);
+  const [destinationInput, setDestinationInput] = useState(destination);
 
   const [isLoadingTrips, setIsLoadingTrips] = useState(true);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [knownRoute, setKnownRoute] = useState<ApiRoute | undefined>(undefined);
   const [dateAvailable, setDateAvailable] = useState(false);
   const [trips, setTrips] = useState<Trip[]>([]);
   const [companiesCount, setCompaniesCount] = useState(0);
+  const [dateOptions, setDateOptions] = useState<DateOption[]>([]);
+  const dateScrollRef = useRef<HTMLDivElement>(null);
+
+  const scrollDates = (direction: "left" | "right") => {
+    dateScrollRef.current?.scrollBy({ left: direction === "left" ? -180 : 180, behavior: "smooth" });
+  };
 
   const handleSwapLocations = () => {
+    setOriginInput(destinationInput);
+    setDestinationInput(originInput);
     setOriginValue(destinationValue);
     setDestinationValue(originValue);
   };
 
-  const dateOptions = useMemo(() => buildDateOptions(dateISO), [dateISO]);
+  // Espera a que el usuario deje de escribir antes de volver a buscar —
+  // si no, cada letra dispararía una búsqueda nueva contra el backend.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setOriginValue(originInput);
+      setDestinationValue(destinationInput);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [originInput, destinationInput]);
 
   useEffect(() => {
     let cancelled = false;
-    setIsLoadingTrips(true);
 
-    Promise.all([
-      findKnownRoute(originValue, destinationValue),
-      isDateAvailableForRoute(originValue, destinationValue, selectedDate),
-      getTripsForRoute(originValue, destinationValue),
-      fetchRoutes(),
-    ]).then(([route, available, tripList, allRoutes]) => {
+    (async () => {
+      setIsLoadingTrips(true);
+
+      const [route, available, tripList, dates, allRoutes] = await Promise.all([
+        findKnownRoute(originValue, destinationValue),
+        isDateAvailableForRoute(originValue, destinationValue, selectedDate),
+        getTripsForRoute(originValue, destinationValue),
+        getAvailableDatesForRoute(originValue, destinationValue),
+        fetchRoutes(),
+      ]);
       if (cancelled) return;
       setKnownRoute(route);
       setDateAvailable(available);
       setTrips(tripList);
+      setDateOptions(dates);
       setCompaniesCount(new Set(allRoutes.map((r) => r.companyId)).size);
       setIsLoadingTrips(false);
-    });
+      setHasLoadedOnce(true);
+    })();
 
     return () => {
       cancelled = true;
@@ -106,20 +129,12 @@ const ResultadosViajes = ({ origin, destination, dateISO, passengers }: Resultad
       fecha: selectedDate,
       pasajeros: String(passengerCount),
     });
-    const target = `/viajes/${trip.id}/asiento?${params.toString()}`;
-
-    if (!isLoading && !user) {
-      saveReservationRedirect(target);
-      savePendingPassengers(passengerCount);
-      toast.info("Inicia sesión para continuar", {
-        description: "Necesitas una cuenta para reservar tu asiento.",
-      });
-      router.push("/auth/login");
-      return;
-    }
-
-    router.push(target);
+    router.push(`/viajes/${trip.id}/asiento?${params.toString()}`);
   };
+
+  if (isLoadingTrips && !hasLoadedOnce) {
+    return <LoadingScreen />;
+  }
 
   return (
     <div className="min-h-screen bg-background px-8 py-8">
@@ -133,10 +148,15 @@ const ResultadosViajes = ({ origin, destination, dateISO, passengers }: Resultad
 
         {/* Resumen de búsqueda */}
         <div className="mt-4 flex flex-wrap items-center gap-6 rounded-xl border border-border bg-card p-5">
-          <div>
-            <p className="font-mono-label text-[10.5px] uppercase text-muted-foreground">Origen</p>
-            <p className="text-sm font-bold text-card-foreground">{originValue}</p>
-          </div>
+          <label className="block">
+            <span className="mb-1 block font-mono-label text-[10.5px] uppercase text-muted-foreground">Origen</span>
+            <input
+              type="text"
+              value={originInput}
+              onChange={(e) => setOriginInput(e.target.value)}
+              className="mt-2 w-32 rounded-lg border border-border bg-muted px-2.5 py-1.5 text-sm font-bold text-card-foreground outline-none focus:border-primary"
+            />
+          </label>
           <button
             type="button"
             onClick={handleSwapLocations}
@@ -145,14 +165,30 @@ const ResultadosViajes = ({ origin, destination, dateISO, passengers }: Resultad
           >
             ⇄
           </button>
-          <div>
-            <p className="font-mono-label text-[10.5px] uppercase text-muted-foreground">Destino</p>
-            <p className="text-sm font-bold text-card-foreground">{destinationValue}</p>
-          </div>
-          <div>
-            <p className="font-mono-label text-[10.5px] uppercase text-muted-foreground">Fecha de ida</p>
-            <p className="text-sm font-bold text-card-foreground">{formatDateLabel(selectedDate)}</p>
-          </div>
+          <label className="block">
+            <span className="mb-1 block font-mono-label text-[10.5px] uppercase text-muted-foreground">Destino</span>
+            <input
+              type="text"
+              value={destinationInput}
+              onChange={(e) => setDestinationInput(e.target.value)}
+              className="mt-2 w-32 rounded-lg border border-border bg-muted px-2.5 py-1.5 text-sm font-bold text-card-foreground outline-none focus:border-primary"
+            />
+          </label>
+          <label className="block">
+            <span className="mb-1 block font-mono-label text-[10.5px] uppercase text-muted-foreground">Fecha de ida</span>
+            {dateOptions.length > 0 ? (
+              <div className="mt-2 w-36">
+                <DepartureDatePicker
+                  value={selectedDate}
+                  availableDates={dateOptions.map((option) => option.iso)}
+                  onChange={setSelectedDate}
+                  triggerClassName="h-9 w-full truncate whitespace-nowrap rounded-lg border border-border bg-muted px-2.5 text-left text-sm font-bold text-card-foreground outline-none focus:border-primary"
+                />
+              </div>
+            ) : (
+              <p className="mt-2 text-sm font-bold text-card-foreground">{formatDateLabel(selectedDate)}</p>
+            )}
+          </label>
           <div>
             <p className="font-mono-label text-[10.5px] uppercase text-muted-foreground">Pasajeros</p>
             <div className="mt-1 flex items-center gap-2">
@@ -201,29 +237,61 @@ const ResultadosViajes = ({ origin, destination, dateISO, passengers }: Resultad
           </p>
         </div>
 
-        {/* Fechas */}
-        <div className="mt-6 flex flex-wrap gap-2">
-          {dateOptions.map((option) => {
-            const isActive = option.iso === selectedDate;
-            return (
-              <button
-                key={option.iso}
-                type="button"
-                onClick={() => setSelectedDate(option.iso)}
-                className={`flex w-20 flex-col items-center rounded-xl border px-3 py-2.5 transition-colors ${
-                  isActive
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : "border-border bg-card text-card-foreground hover:border-primary"
-                }`}
-              >
-                <span className="font-mono-label text-[10.5px] uppercase opacity-80">
-                  {option.weekday}
-                </span>
-                <span className="font-display text-lg">{option.day}</span>
-              </button>
-            );
-          })}
-        </div>
+        {/* Fechas (solo las que realmente tienen viajes para esta ruta) */}
+        {dateOptions.length > 0 ? (
+          <div className="mt-6 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => scrollDates("left")}
+              aria-label="Ver fechas anteriores"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+            >
+              ‹
+            </button>
+
+            <div
+              ref={dateScrollRef}
+              className="flex flex-1 gap-2 overflow-x-auto scroll-smooth px-1 py-1 scrollbar-none [-ms-overflow-style:none]"
+            >
+              {dateOptions.map((option) => {
+                const isActive = option.iso === selectedDate;
+                return (
+                  <button
+                    key={option.iso}
+                    type="button"
+                    onClick={() => setSelectedDate(option.iso)}
+                    className={`flex w-20 shrink-0 flex-col items-center rounded-xl border px-3 py-2.5 transition-colors ${
+                      isActive
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border bg-card text-card-foreground hover:border-primary"
+                    }`}
+                  >
+                    <span className="font-mono-label text-[10.5px] uppercase opacity-80">
+                      {option.weekday}
+                    </span>
+                    <span className="font-display text-lg">{option.day}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => scrollDates("right")}
+              aria-label="Ver fechas siguientes"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+            >
+              ›
+            </button>
+          </div>
+        ) : (
+          !isLoadingTrips &&
+          knownRoute && (
+            <p className="mt-6 text-sm text-muted-foreground">
+              No encontramos otras fechas con viajes programados para esta ruta.
+            </p>
+          )
+        )}
 
         {/* Orden */}
         <div className="mt-6 flex items-center gap-3">
