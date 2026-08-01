@@ -1,4 +1,5 @@
 "use client";
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useFormik } from "formik";
@@ -22,6 +23,7 @@ const PassengerRegisterForm = () => {
     validationSchema: passengerRegisterValidationSchema,
     onSubmit: async (values, { setSubmitting }) => {
       try {
+        // 1. Registro del usuario en Backend
         const { data: signUpData } = await api.post("/auth/signup", {
           name: values.fullName,
           email: values.email,
@@ -31,11 +33,13 @@ const PassengerRegisterForm = () => {
           phone: Number(values.phone),
         });
 
+        // 2. Autenticación inmediata (El Backend asigna la Cookie HttpOnly)
         await api.post("/auth/signin", {
           email: values.email,
           password: values.password,
         });
 
+        // 3. Trae los datos reales del perfil desde el Backend
         const profile = await fetchCurrentUser();
         if (!profile) {
           toast.error("No se pudo iniciar sesión", {
@@ -49,7 +53,10 @@ const PassengerRegisterForm = () => {
         router.push("/cliente/dashboard");
       } catch (error) {
         toast.error("No se pudo crear la cuenta", {
-          description: getApiErrorMessage(error, "Intenta de nuevo en unos minutos"),
+          description: getApiErrorMessage(
+            error,
+            "Intenta de nuevo en unos minutos"
+          ),
         });
       } finally {
         setSubmitting(false);
@@ -74,7 +81,9 @@ const PassengerRegisterForm = () => {
           className="mt-1.5 w-full rounded-lg border border-border bg-muted px-4 py-2.5 text-sm text-card-foreground outline-none focus:border-primary"
         />
         {formik.touched.fullName && formik.errors.fullName && (
-          <p className="mt-1 text-xs text-destructive">{formik.errors.fullName}</p>
+          <p className="mt-1 text-xs text-destructive">
+            {formik.errors.fullName}
+          </p>
         )}
       </label>
 
@@ -111,7 +120,9 @@ const PassengerRegisterForm = () => {
           className="mt-1.5 w-full rounded-lg border border-border bg-muted px-4 py-2.5 text-sm text-card-foreground outline-none focus:border-primary"
         />
         {formik.touched.email && formik.errors.email && (
-          <p className="mt-1 text-xs text-destructive">{formik.errors.email}</p>
+          <p className="mt-1 text-xs text-destructive">
+            {formik.errors.email}
+          </p>
         )}
       </label>
 
@@ -130,7 +141,9 @@ const PassengerRegisterForm = () => {
           className="mt-1.5 w-full rounded-lg border border-border bg-muted px-4 py-2.5 text-sm text-card-foreground outline-none focus:border-primary"
         />
         {formik.touched.phone && formik.errors.phone && (
-          <p className="mt-1 text-xs text-destructive">{formik.errors.phone}</p>
+          <p className="mt-1 text-xs text-destructive">
+            {formik.errors.phone}
+          </p>
         )}
       </label>
 
@@ -152,14 +165,18 @@ const PassengerRegisterForm = () => {
           <button
             type="button"
             onClick={() => setShowPassword((prev) => !prev)}
-            aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+            aria-label={
+              showPassword ? "Ocultar contraseña" : "Mostrar contraseña"
+            }
             className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
           >
             <EyeIcon open={showPassword} />
           </button>
         </div>
         {formik.touched.password && formik.errors.password && (
-          <p className="mt-1 text-xs text-destructive">{formik.errors.password}</p>
+          <p className="mt-1 text-xs text-destructive">
+            {formik.errors.password}
+          </p>
         )}
       </label>
 
@@ -181,14 +198,20 @@ const PassengerRegisterForm = () => {
           <button
             type="button"
             onClick={() => setShowConfirmPassword((prev) => !prev)}
-            aria-label={showConfirmPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+            aria-label={
+              showConfirmPassword
+                ? "Ocultar contraseña"
+                : "Mostrar contraseña"
+            }
             className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
           >
             <EyeIcon open={showConfirmPassword} />
           </button>
         </div>
         {formik.touched.confirmPassword && formik.errors.confirmPassword && (
-          <p className="mt-1 text-xs text-destructive">{formik.errors.confirmPassword}</p>
+          <p className="mt-1 text-xs text-destructive">
+            {formik.errors.confirmPassword}
+          </p>
         )}
       </label>
 
@@ -214,7 +237,9 @@ const PassengerRegisterForm = () => {
         </span>
       </label>
       {formik.touched.acceptTerms && formik.errors.acceptTerms && (
-        <p className="mt-1 text-xs text-destructive">{formik.errors.acceptTerms}</p>
+        <p className="mt-1 text-xs text-destructive">
+          {formik.errors.acceptTerms}
+        </p>
       )}
 
       <button
