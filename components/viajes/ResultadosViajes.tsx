@@ -14,6 +14,7 @@ import {
 import { fetchRoutes, type ApiRoute } from "@/lib/api";
 import { formatCOP } from "@/data/home";
 import LoadingScreen from "@/components/LoadingScreen";
+import DepartureDatePicker from "@/components/DepartureDatePicker";
 
 type SortKey = "precio" | "salida" | "duracion";
 
@@ -176,17 +177,14 @@ const ResultadosViajes = ({ origin, destination, dateISO, passengers }: Resultad
           <label className="block">
             <span className="mb-1 block font-mono-label text-[10.5px] uppercase text-muted-foreground">Fecha de ida</span>
             {dateOptions.length > 0 ? (
-              <select
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="mt-2 w-36 rounded-lg border border-border bg-muted px-2.5 py-1.5 text-sm font-bold text-card-foreground outline-none focus:border-primary"
-              >
-                {dateOptions.map((option) => (
-                  <option key={option.iso} value={option.iso}>
-                    {formatDateLabel(option.iso)}
-                  </option>
-                ))}
-              </select>
+              <div className="mt-2 w-36">
+                <DepartureDatePicker
+                  value={selectedDate}
+                  availableDates={dateOptions.map((option) => option.iso)}
+                  onChange={setSelectedDate}
+                  triggerClassName="h-9 w-full truncate whitespace-nowrap rounded-lg border border-border bg-muted px-2.5 text-left text-sm font-bold text-card-foreground outline-none focus:border-primary"
+                />
+              </div>
             ) : (
               <p className="mt-2 text-sm font-bold text-card-foreground">{formatDateLabel(selectedDate)}</p>
             )}

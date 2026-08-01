@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { searchInitialValues, searchValidationSchema, todayISO } from "@/components/forms/home/SearchSchema";
 import { fetchTrips, type ApiTrip } from "@/lib/api";
-import { normalizeCityName, formatDateLabel } from "@/data/viajes";
+import { normalizeCityName } from "@/data/viajes";
+import DepartureDatePicker from "@/components/DepartureDatePicker";
 
 const ArrowLeftRight = ({ className }: { className?: string }) => (
   <span className={`flex items-center justify-center leading-none ${className ?? ""}`}>⇄</span>
@@ -37,6 +38,10 @@ const SearchForm = () => {
       router.push(`/viajes?${query}`);
     },
   });
+
+  const hasOriginAndDestination = Boolean(
+    formik.values.origin.trim() && formik.values.destination.trim()
+  );
 
   // Solo cuando origen y destino coinciden con una ruta real mostramos las
   // fechas en las que de verdad hay viajes — si no, el usuario elige a ciegas
@@ -178,36 +183,29 @@ const SearchForm = () => {
         <label className="block">
           <span className="mb-1 block text-xs font-semibold text-muted-foreground">Fecha de ida</span>
           {availableDates.length > 0 ? (
-            <select
-              name="departureDate"
+            <DepartureDatePicker
               value={formik.values.departureDate}
-              onChange={formik.handleChange}
-              onBlur={formik.handleBlur}
-              className="w-full rounded-lg border border-border bg-muted px-4 py-2.5 text-sm text-[var(--bustix-text-on-dark)] outline-none focus:border-primary"
-            >
-              {availableDates.map((iso) => (
-                <option key={iso} value={iso}>
-                  {formatDateLabel(iso)}
-                </option>
-              ))}
-            </select>
-          ) : (
-            <input
-              type="date"
-              name="departureDate"
-              autoComplete="off"
-              min={todayISO()}
-              value={formik.values.departureDate}
-              onChange={formik.handleChange}
-              onBlur={formik.handleBlur}
-              className="w-full rounded-lg border border-border bg-muted px-4 py-2.5 text-sm text-[var(--bustix-text-on-dark)] outline-none focus:border-primary"
+              availableDates={availableDates}
+              onChange={(iso) => formik.setFieldValue("departureDate", iso)}
             />
+          ) : (
+            <div
+              aria-disabled="true"
+              title={hasOriginAndDestination ? "No encontramos viajes para esa ruta" : "Elige origen y destino primero"}
+              className="flex h-10.5 w-full cursor-not-allowed items-center overflow-hidden truncate whitespace-nowrap rounded-lg border border-border bg-muted px-4 text-sm text-muted-foreground opacity-60"
+            >
+              {hasOriginAndDestination ? "Sin fechas disponibles" : "Elige origen y destino"}
+            </div>
           )}
-          {formik.values.origin.trim() && formik.values.destination.trim() && availableDates.length === 0 && (
-            <p className="mt-1 text-xs text-muted-foreground">
-              No encontramos viajes programados para esa ruta todavía.
-            </p>
-          )}
+          {/* Reserva el espacio siempre (con invisible) para que la tarjeta no
+              cambie de tamaño cada vez que este mensaje aparece o desaparece. */}
+          <p
+            className={`mt-1 text-xs text-muted-foreground ${
+              hasOriginAndDestination && availableDates.length === 0 ? "" : "invisible"
+            }`}
+          >
+            No encontramos viajes programados para esa ruta todavía.
+          </p>
         </label>
 
         <label className="block">
