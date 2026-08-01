@@ -5,11 +5,12 @@ import Link from "next/link";
 import { toast } from "sonner";
 import {
   getTripsForRoute,
-  buildDateOptions,
+  getAvailableDatesForRoute,
   formatDateLabel,
   findKnownRoute,
   isDateAvailableForRoute,
   type Trip,
+  type DateOption,
 } from "@/data/viajes";
 import { fetchRoutes, type ApiRoute } from "@/lib/api";
 import { formatCOP } from "@/data/home";
@@ -58,13 +59,12 @@ const ResultadosViajes = ({ origin, destination, dateISO, passengers }: Resultad
   const [dateAvailable, setDateAvailable] = useState(false);
   const [trips, setTrips] = useState<Trip[]>([]);
   const [companiesCount, setCompaniesCount] = useState(0);
+  const [dateOptions, setDateOptions] = useState<DateOption[]>([]);
 
   const handleSwapLocations = () => {
     setOriginValue(destinationValue);
     setDestinationValue(originValue);
   };
-
-  const dateOptions = useMemo(() => buildDateOptions(dateISO), [dateISO]);
 
   useEffect(() => {
     let cancelled = false;
@@ -74,12 +74,14 @@ const ResultadosViajes = ({ origin, destination, dateISO, passengers }: Resultad
       findKnownRoute(originValue, destinationValue),
       isDateAvailableForRoute(originValue, destinationValue, selectedDate),
       getTripsForRoute(originValue, destinationValue),
+      getAvailableDatesForRoute(originValue, destinationValue),
       fetchRoutes(),
-    ]).then(([route, available, tripList, allRoutes]) => {
+    ]).then(([route, available, tripList, dates, allRoutes]) => {
       if (cancelled) return;
       setKnownRoute(route);
       setDateAvailable(available);
       setTrips(tripList);
+      setDateOptions(dates);
       setCompaniesCount(new Set(allRoutes.map((r) => r.companyId)).size);
       setIsLoadingTrips(false);
     });
@@ -201,29 +203,31 @@ const ResultadosViajes = ({ origin, destination, dateISO, passengers }: Resultad
           </p>
         </div>
 
-        {/* Fechas */}
-        <div className="mt-6 flex flex-wrap gap-2">
-          {dateOptions.map((option) => {
-            const isActive = option.iso === selectedDate;
-            return (
-              <button
-                key={option.iso}
-                type="button"
-                onClick={() => setSelectedDate(option.iso)}
-                className={`flex w-20 flex-col items-center rounded-xl border px-3 py-2.5 transition-colors ${
-                  isActive
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : "border-border bg-card text-card-foreground hover:border-primary"
-                }`}
-              >
-                <span className="font-mono-label text-[10.5px] uppercase opacity-80">
-                  {option.weekday}
-                </span>
-                <span className="font-display text-lg">{option.day}</span>
-              </button>
-            );
-          })}
-        </div>
+        {/* Fechas (solo las que realmente tienen viajes para esta ruta) */}
+        {dateOptions.length > 0 && (
+          <div className="mt-6 flex flex-wrap gap-2">
+            {dateOptions.map((option) => {
+              const isActive = option.iso === selectedDate;
+              return (
+                <button
+                  key={option.iso}
+                  type="button"
+                  onClick={() => setSelectedDate(option.iso)}
+                  className={`flex w-20 flex-col items-center rounded-xl border px-3 py-2.5 transition-colors ${
+                    isActive
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border bg-card text-card-foreground hover:border-primary"
+                  }`}
+                >
+                  <span className="font-mono-label text-[10.5px] uppercase opacity-80">
+                    {option.weekday}
+                  </span>
+                  <span className="font-display text-lg">{option.day}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         {/* Orden */}
         <div className="mt-6 flex items-center gap-3">

@@ -166,6 +166,34 @@ export function buildDateOptions(centerDateISO: string): DateOption[] {
   return options;
 }
 
+export async function getAvailableDatesForRoute(
+  origin: string,
+  destination: string
+): Promise<DateOption[]> {
+  const trips = await fetchTrips();
+  const o = normalizeCityName(origin);
+  const d = normalizeCityName(destination);
+  const todayIso = new Date().toISOString().slice(0, 10);
+
+  const isoDates = new Set<string>();
+  for (const trip of trips) {
+    if (normalizeCityName(trip.origin) !== o || normalizeCityName(trip.destination) !== d) {
+      continue;
+    }
+    const iso = new Date(trip.departureDate).toISOString().slice(0, 10);
+    if (iso >= todayIso) {
+      isoDates.add(iso);
+    }
+  }
+
+  return Array.from(isoDates)
+    .sort()
+    .map((iso) => {
+      const date = new Date(`${iso}T00:00:00`);
+      return { iso, weekday: WEEKDAY_SHORT[date.getDay()], day: date.getDate() };
+    });
+}
+
 export function formatDateLabel(dateISO: string): string {
   const date = new Date(`${dateISO}T00:00:00`);
   const weekday = WEEKDAY_SHORT[date.getDay()];
