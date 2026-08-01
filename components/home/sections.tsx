@@ -3,7 +3,8 @@ import { useEffect, useMemo, useState } from "react";
 import type { ComponentType, SVGProps } from "react";
 import Link from "next/link";
 import SearchForm from "@/components/forms/home/SearchForm";
-import { fetchRoutes, type ApiRoute } from "@/lib/api";
+import { fetchRoutes, fetchTrips, type ApiRoute, type ApiTrip } from "@/lib/api";
+import { formatDateLabel } from "@/data/viajes";
 import {
   upcomingDepartures,
   benefits,
@@ -196,16 +197,18 @@ export const PopularRoutes = () => {
   const [origin, setOrigin] = useState("Todos");
   const [destination, setDestination] = useState("Todos");
   const [company, setCompany] = useState("Todos");
+  const [date, setDate] = useState("Todos");
   const [apiRoutes, setApiRoutes] = useState<ApiRoute[]>([]);
+  const [apiTrips, setApiTrips] = useState<ApiTrip[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
-    fetchRoutes().then((routes) => {
-      if (!cancelled) {
-        setApiRoutes(routes);
-        setIsLoading(false);
-      }
+    Promise.all([fetchRoutes(), fetchTrips()]).then(([routes, trips]) => {
+      if (cancelled) return;
+      setApiRoutes(routes);
+      setApiTrips(trips);
+      setIsLoading(false);
     });
     return () => {
       cancelled = true;
@@ -227,22 +230,47 @@ export const PopularRoutes = () => {
     [popularRoutes]
   );
 
+  // Solo fechas (desde hoy en adelante) en las que de verdad hay al menos un
+  // viaje programado, para que el filtro no ofrezca fechas vacías.
+  const dateOptions = useMemo(() => {
+    const todayIso = new Date().toISOString().slice(0, 10);
+    const isoDates = new Set<string>();
+    for (const trip of apiTrips) {
+      const iso = new Date(trip.departureDate).toISOString().slice(0, 10);
+      if (iso >= todayIso) {
+        isoDates.add(iso);
+      }
+    }
+    return Array.from(isoDates).sort();
+  }, [apiTrips]);
+
   const filteredRoutes = useMemo(() => {
     return popularRoutes.filter((route) => {
       if (origin !== "Todos" && route.origin !== origin) return false;
       if (destination !== "Todos" && route.destination !== destination) return false;
       if (company !== "Todos" && route.company !== company) return false;
+      if (date !== "Todos") {
+        const hasTripOnDate = apiTrips.some((trip) => {
+          if (trip.origin !== route.origin || trip.destination !== route.destination) {
+            return false;
+          }
+          return new Date(trip.departureDate).toISOString().slice(0, 10) === date;
+        });
+        if (!hasTripOnDate) return false;
+      }
       return true;
     });
-  }, [popularRoutes, origin, destination, company]);
+  }, [popularRoutes, origin, destination, company, date, apiTrips]);
 
   const handleReset = () => {
     setOrigin("Todos");
     setDestination("Todos");
     setCompany("Todos");
+    setDate("Todos");
   };
 
-  const hasActiveFilters = origin !== "Todos" || destination !== "Todos" || company !== "Todos";
+  const hasActiveFilters =
+    origin !== "Todos" || destination !== "Todos" || company !== "Todos" || date !== "Todos";
 
   return (
     <section id="rutas-populares" className="bg-background px-4 pb-20 pt-14 sm:px-8">
@@ -313,6 +341,23 @@ export const PopularRoutes = () => {
             </select>
           </label>
 
+          <label className="flex flex-col gap-1">
+            <span className="text-xs font-semibold text-muted-foreground">Fecha de ida</span>
+            <select
+              id="rutas-populares-date"
+              name="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              autoComplete="off"
+              className="rounded-lg border border-border bg-muted px-3 py-2 text-sm text-card-foreground outline-none focus:border-primary"
+            >
+              <option value="Todos">Todas</option>
+              {dateOptions.map((iso) => (
+                <option key={iso} value={iso}>{formatDateLabel(iso)}</option>
+              ))}
+            </select>
+          </label>
+
           {hasActiveFilters && (
             <button
               type="button"
@@ -356,7 +401,7 @@ export const PopularRoutes = () => {
                     </p>
                   </div>
                   <Link
-                    href={`/viajes?origen=${encodeURIComponent(route.origin)}&destino=${encodeURIComponent(route.destination)}`}
+                    href={`/viajes?origen=${encodeURIComponent(route.origin)}&destino=${encodeURIComponent(route.destination)}${date !== "Todos" ? `&fecha=${date}` : ""}`}
                     className="flex items-center gap-1 text-sm font-semibold text-accent hover:underline"
                   >
                     Ver horarios

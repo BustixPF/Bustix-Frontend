@@ -2,7 +2,7 @@
 import { useFormik } from "formik";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { searchInitialValues, searchValidationSchema } from "@/components/forms/home/SearchSchema";
+import { searchInitialValues, searchValidationSchema, todayISO } from "@/components/forms/home/SearchSchema";
 
 const ArrowLeftRight = ({ className }: { className?: string }) => (
   <span className={`flex items-center justify-center leading-none ${className ?? ""}`}>⇄</span>
@@ -32,12 +32,26 @@ const SearchForm = () => {
     });
   };
 
-  const handleFormSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+
+    const errors = await formik.validateForm();
+    formik.setTouched({ origin: true, destination: true, departureDate: true });
+
+    if (errors.origin || errors.destination) {
+      return;
+    }
 
     if (!formik.values.departureDate) {
       toast.error("Falta la fecha de ida", {
         description: "Elige una fecha para poder buscar los buses disponibles.",
+      });
+      return;
+    }
+
+    if (errors.departureDate) {
+      toast.error("Fecha de ida inválida", {
+        description: errors.departureDate,
       });
       return;
     }
@@ -67,8 +81,16 @@ const SearchForm = () => {
               value={formik.values.origin}
               onChange={formik.handleChange}
               onBlur={formik.handleBlur}
-              className="w-full rounded-lg border border-border bg-muted px-4 py-2.5 text-sm text-[var(--bustix-text-on-dark)] outline-none focus:border-primary placeholder:text-muted-foreground"
+              aria-invalid={Boolean(formik.touched.origin && formik.errors.origin)}
+              className={`w-full rounded-lg border bg-muted px-4 py-2.5 text-sm text-[var(--bustix-text-on-dark)] outline-none placeholder:text-muted-foreground ${
+                formik.touched.origin && formik.errors.origin
+                  ? "border-destructive focus:border-destructive"
+                  : "border-border focus:border-primary"
+              }`}
             />
+            {formik.touched.origin && formik.errors.origin && (
+              <p className="mt-1 text-xs font-semibold text-destructive">{formik.errors.origin}</p>
+            )}
           </label>
 
           <label className="block">
@@ -81,8 +103,16 @@ const SearchForm = () => {
               value={formik.values.destination}
               onChange={formik.handleChange}
               onBlur={formik.handleBlur}
-              className="w-full rounded-lg border border-border bg-muted px-4 py-2.5 text-sm text-[var(--bustix-text-on-dark)] outline-none focus:border-primary placeholder:text-muted-foreground"
+              aria-invalid={Boolean(formik.touched.destination && formik.errors.destination)}
+              className={`w-full rounded-lg border bg-muted px-4 py-2.5 text-sm text-[var(--bustix-text-on-dark)] outline-none placeholder:text-muted-foreground ${
+                formik.touched.destination && formik.errors.destination
+                  ? "border-destructive focus:border-destructive"
+                  : "border-border focus:border-primary"
+              }`}
             />
+            {formik.touched.destination && formik.errors.destination && (
+              <p className="mt-1 text-xs font-semibold text-destructive">{formik.errors.destination}</p>
+            )}
           </label>
         </div>
 
@@ -103,6 +133,7 @@ const SearchForm = () => {
             type="date"
             name="departureDate"
             autoComplete="off"
+            min={todayISO()}
             value={formik.values.departureDate}
             onChange={formik.handleChange}
             onBlur={formik.handleBlur}
