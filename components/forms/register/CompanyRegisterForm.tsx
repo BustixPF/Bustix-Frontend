@@ -301,9 +301,9 @@ const CompanyRegisterForm = () => {
               {files.map((entry, index) => (
                 <li
                   key={`${entry.file.name}-${index}`}
-                  className="flex items-center justify-between gap-3 rounded-lg border border-border bg-muted px-4 py-2.5 text-sm"
+                  className="flex min-w-0 items-center justify-between gap-3 rounded-lg border border-border bg-muted px-4 py-2.5 text-sm"
                 >
-                  <span className="truncate text-card-foreground">
+                  <span className="min-w-0 truncate text-card-foreground">
                     {entry.file.name}{" "}
                     <span className="text-xs text-muted-foreground">
                       ({formatFileSize(entry.file.size)})

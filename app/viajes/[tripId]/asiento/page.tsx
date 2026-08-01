@@ -8,6 +8,8 @@ import SeatSelectionPanel, { type SelectedSeatInfo } from "@/components/viajes/S
 import LoadingScreen from "@/components/LoadingScreen";
 import { getTripById, formatDateLabel, seatPositionLabel, type Trip } from "@/data/viajes";
 import { fetchAvailableSeats, type ApiSeat } from "@/lib/api";
+import { useAuth } from "@/components/context/AuthContext";
+import { savePendingPassengers, saveReservationRedirect } from "@/lib/reservation-redirect";
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
 
@@ -15,6 +17,7 @@ const AsientoPageContent = () => {
   const { tripId } = useParams<{ tripId: string }>();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { user, isLoading: isAuthLoading } = useAuth();
 
   const origin = searchParams.get("origen") ?? "Medellín (Ant.)";
   const destination = searchParams.get("destino") ?? "Bogotá (D.C.)";
@@ -28,14 +31,15 @@ const AsientoPageContent = () => {
 
   useEffect(() => {
     let cancelled = false;
-    setIsLoading(true);
 
-    Promise.all([getTripById(tripId), fetchAvailableSeats(tripId)]).then(([tripData, seats]) => {
+    (async () => {
+      setIsLoading(true);
+      const [tripData, seats] = await Promise.all([getTripById(tripId), fetchAvailableSeats(tripId)]);
       if (cancelled) return;
       setTrip(tripData);
       setAvailableSeats(seats);
       setIsLoading(false);
-    });
+    })();
 
     return () => {
       cancelled = true;
@@ -100,7 +104,19 @@ const AsientoPageContent = () => {
     params.set("seatIds", seatIds);
     params.set("seatNumbers", seatNumbers);
 
-    router.push(`/viajes/${trip.id}/pagar?${params.toString()}`);
+    const target = `/viajes/${trip.id}/pagar?${params.toString()}`;
+
+    if (!isAuthLoading && !user) {
+      saveReservationRedirect(target);
+      savePendingPassengers(passengers);
+      toast.info("Inicia sesión para continuar", {
+        description: "Necesitas una cuenta para completar el pago.",
+      });
+      router.push("/auth/login");
+      return;
+    }
+
+    router.push(target);
   };
 
   return (

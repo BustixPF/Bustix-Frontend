@@ -37,9 +37,9 @@ const STATS = [
 
 export default function LoginPage() {
   const handleGoogleLogin = () => {
-    // Redirige al endpoint de Google en NestJS
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
-    window.location.href = `${apiUrl}/auth/google`;
+    // Ruta relativa: pasa por el rewrite de next.config.ts (mismo origen que
+    // el navegador), no directo a Railway — así la cookie queda same-site.
+    window.location.href = "/api/auth/google";
   };
 
   return (

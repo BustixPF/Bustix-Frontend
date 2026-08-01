@@ -16,6 +16,7 @@ export interface Trip {
   departureTime: string;
   arrivalTime: string;
   duration: string;
+  durationMinutes: number;
   departureDateISO: string;
   seatsAvailable: number;
   price: number;
@@ -84,6 +85,7 @@ async function enrichTrip(trip: ApiTrip, routeLookup: Map<string, ApiRoute>): Pr
     departureTime: formatTime(departure),
     arrivalTime: formatTime(arrival),
     duration: formatDuration(durationMinutes),
+    durationMinutes,
     departureDateISO: trip.departureDate,
     seatsAvailable: seats.length,
     price: Number(trip.price),

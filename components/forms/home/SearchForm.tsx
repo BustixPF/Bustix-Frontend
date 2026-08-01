@@ -1,8 +1,11 @@
 "use client";
+import { useEffect, useMemo, useState } from "react";
 import { useFormik } from "formik";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { searchInitialValues, searchValidationSchema, todayISO } from "@/components/forms/home/SearchSchema";
+import { fetchTrips, type ApiTrip } from "@/lib/api";
+import { normalizeCityName, formatDateLabel } from "@/data/viajes";
 
 const ArrowLeftRight = ({ className }: { className?: string }) => (
   <span className={`flex items-center justify-center leading-none ${className ?? ""}`}>⇄</span>
@@ -14,6 +17,17 @@ const Search = ({ className }: { className?: string }) => (
 
 const SearchForm = () => {
   const router = useRouter();
+  const [trips, setTrips] = useState<ApiTrip[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchTrips().then((data) => {
+      if (!cancelled) setTrips(data);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const formik = useFormik({
     initialValues: searchInitialValues,
@@ -23,6 +37,40 @@ const SearchForm = () => {
       router.push(`/viajes?${query}`);
     },
   });
+
+  // Solo cuando origen y destino coinciden con una ruta real mostramos las
+  // fechas en las que de verdad hay viajes — si no, el usuario elige a ciegas
+  // y termina en un resultado vacío en /viajes.
+  const availableDates = useMemo(() => {
+    const origin = formik.values.origin.trim();
+    const destination = formik.values.destination.trim();
+    if (!origin || !destination) return [];
+
+    const o = normalizeCityName(origin);
+    const d = normalizeCityName(destination);
+    const todayIso = todayISO();
+    const isoDates = new Set<string>();
+
+    for (const trip of trips) {
+      if (normalizeCityName(trip.origin) !== o || normalizeCityName(trip.destination) !== d) {
+        continue;
+      }
+      const iso = new Date(trip.departureDate).toISOString().slice(0, 10);
+      if (iso >= todayIso) {
+        isoDates.add(iso);
+      }
+    }
+
+    return Array.from(isoDates).sort();
+  }, [trips, formik.values.origin, formik.values.destination]);
+
+  useEffect(() => {
+    if (availableDates.length === 0) return;
+    if (!availableDates.includes(formik.values.departureDate)) {
+      formik.setFieldValue("departureDate", availableDates[0]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [availableDates]);
 
   const handleSwap = () => {
     formik.setValues({
@@ -129,16 +177,37 @@ const SearchForm = () => {
       <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
         <label className="block">
           <span className="mb-1 block text-xs font-semibold text-muted-foreground">Fecha de ida</span>
-          <input
-            type="date"
-            name="departureDate"
-            autoComplete="off"
-            min={todayISO()}
-            value={formik.values.departureDate}
-            onChange={formik.handleChange}
-            onBlur={formik.handleBlur}
-            className="w-full rounded-lg border border-border bg-muted px-4 py-2.5 text-sm text-[var(--bustix-text-on-dark)] outline-none focus:border-primary"
-          />
+          {availableDates.length > 0 ? (
+            <select
+              name="departureDate"
+              value={formik.values.departureDate}
+              onChange={formik.handleChange}
+              onBlur={formik.handleBlur}
+              className="w-full rounded-lg border border-border bg-muted px-4 py-2.5 text-sm text-[var(--bustix-text-on-dark)] outline-none focus:border-primary"
+            >
+              {availableDates.map((iso) => (
+                <option key={iso} value={iso}>
+                  {formatDateLabel(iso)}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <input
+              type="date"
+              name="departureDate"
+              autoComplete="off"
+              min={todayISO()}
+              value={formik.values.departureDate}
+              onChange={formik.handleChange}
+              onBlur={formik.handleBlur}
+              className="w-full rounded-lg border border-border bg-muted px-4 py-2.5 text-sm text-[var(--bustix-text-on-dark)] outline-none focus:border-primary"
+            />
+          )}
+          {formik.values.origin.trim() && formik.values.destination.trim() && availableDates.length === 0 && (
+            <p className="mt-1 text-xs text-muted-foreground">
+              No encontramos viajes programados para esa ruta todavía.
+            </p>
+          )}
         </label>
 
         <label className="block">

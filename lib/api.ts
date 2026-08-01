@@ -23,26 +23,25 @@ export interface UserProfile {
   id: string;
   name: string;
   email: string;
-  dni: number;
-  phone: number;
-  address: string | null;
+  dni?: number;
+  phone?: number;
+  address?: string | null;
   role: string;
 }
 
 // La cookie httpOnly no se puede leer desde JS (a propósito, es lo que la hace
-// segura), así que para saber quién está logueado le preguntamos al backend
-// en vez de decodificar el JWT nosotros mismos.
+// segura), así que para saber quién está logueado le preguntamos al backend.
 export const fetchCurrentUser = async (): Promise<UserProfile | null> => {
   try {
     // GET /users/profile es la verificación real (pasa por el guard, valida la cookie).
     const { data: session } = await api.get("/users/profile");
     try {
-      // GET /users/:id solo enriquece con name/dni/phone/address.
+      // GET /users/:id enriquece con name/dni/phone/address si está disponible.
       const { data: full } = await api.get(`/users/${session.id}`);
       return { ...full, role: session.role };
     } catch {
       // La sesión sigue siendo válida aunque esta segunda llamada falle;
-      // degradamos con lo mínimo en vez de deslogear a alguien con sesión válida.
+      // degradamos con lo mínimo en vez de desloguear a alguien con sesión válida.
       return {
         id: session.id,
         name: session.email,
@@ -57,6 +56,9 @@ export const fetchCurrentUser = async (): Promise<UserProfile | null> => {
     return null;
   }
 };
+
+// Aliado para compatibilidad si algún componente llama a fetchUserProfile
+export const fetchUserProfile = fetchCurrentUser;
 
 export const logoutRequest = async (): Promise<void> => {
   try {
