@@ -1,4 +1,5 @@
 "use client";
+
 import { createContext, useContext, useEffect, useState } from "react";
 import { fetchCurrentUser, logoutRequest } from "@/lib/api";
 
@@ -27,6 +28,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     let cancelled = false;
+
     // La cookie httpOnly es la fuente de verdad — le preguntamos al backend
     // quién está logueado en vez de confiar en algo guardado localmente.
     fetchCurrentUser().then((profile) => {
@@ -35,6 +37,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setIsLoading(false);
       }
     });
+
     return () => {
       cancelled = true;
     };

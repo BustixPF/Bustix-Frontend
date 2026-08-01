@@ -1,4 +1,5 @@
 "use client";
+
 import Link from "next/link";
 import AuthSidePanel from "@/components/auth/AuthSidePanel";
 import LoginForm from "@/components/forms/login/LoginForm";
@@ -35,6 +36,12 @@ const STATS = [
 ];
 
 export default function LoginPage() {
+  const handleGoogleLogin = () => {
+    // Redirige al endpoint de Google en NestJS
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+    window.location.href = `${apiUrl}/auth/google`;
+  };
+
   return (
     <main className="flex min-h-screen">
       <AuthSidePanel
@@ -54,21 +61,22 @@ export default function LoginPage() {
             Bienvenido de nuevo a BusTix
           </p>
 
+          {/* Formulario tradicional (Email / Password) */}
           <LoginForm />
 
+          {/* Separador visual */}
           <div className="mt-6 flex items-center gap-2" aria-hidden="true">
             <span className="h-2 w-2 rounded-full border border-border bg-card" />
             <span className="h-px flex-1 border-t border-dashed border-border" />
             <span className="h-2 w-2 rounded-full border border-border bg-card" />
           </div>
 
+          {/* Botón Google OAuth */}
           <div className="mt-4">
             <button
               type="button"
-              onClick={() => {
-                window.location.href = "/api/auth/google";
-              }}
-              className="group flex w-full items-center justify-center gap-2 rounded-lg border border-border py-2.5 text-sm font-medium text-card-foreground transition-colors hover:border-primary"
+              onClick={handleGoogleLogin}
+              className="group flex w-full items-center justify-center gap-2 rounded-lg border border-border py-2.5 text-sm font-medium text-card-foreground transition-colors hover:border-primary cursor-pointer"
             >
               <GoogleLogo />
               Google
@@ -77,7 +85,10 @@ export default function LoginPage() {
 
           <p className="mt-6 text-center text-sm text-muted-foreground">
             ¿No tienes cuenta?{" "}
-            <Link href="/auth/register" className="font-bold text-accent hover:underline">
+            <Link
+              href="/auth/register"
+              className="font-bold text-accent hover:underline"
+            >
               Crear cuenta
             </Link>
           </p>
