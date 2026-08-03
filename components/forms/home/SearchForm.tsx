@@ -3,9 +3,9 @@ import { useEffect, useMemo, useState } from "react";
 import { useFormik } from "formik";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { searchInitialValues, searchValidationSchema, todayISO } from "@/components/forms/home/SearchSchema";
+import { searchInitialValues, searchValidationSchema } from "@/components/forms/home/SearchSchema";
 import { fetchTrips, type ApiTrip } from "@/lib/api";
-import { normalizeCityName } from "@/data/viajes";
+import { normalizeCityName, toLocalDateISO } from "@/data/viajes";
 import DepartureDatePicker from "@/components/DepartureDatePicker";
 
 const ArrowLeftRight = ({ className }: { className?: string }) => (
@@ -55,14 +55,14 @@ const SearchForm = () => {
 
     const o = normalizeCityName(origin);
     const d = normalizeCityName(destination);
-    const todayIso = todayISO();
+    const todayIso = toLocalDateISO(new Date());
     const isoDates = new Set<string>();
 
     for (const trip of trips) {
       if (normalizeCityName(trip.origin) !== o || normalizeCityName(trip.destination) !== d) {
         continue;
       }
-      const iso = new Date(trip.departureDate).toISOString().slice(0, 10);
+      const iso = toLocalDateISO(new Date(trip.departureDate));
       if (iso >= todayIso) {
         isoDates.add(iso);
       }

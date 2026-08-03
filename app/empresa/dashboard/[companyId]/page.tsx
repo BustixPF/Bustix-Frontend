@@ -5,6 +5,7 @@ import CompanySidebar from "@/components/company-dashboard/CompanySidebar";
 import CompanyTopBar from "@/components/company-dashboard/CompanyTopBar";
 import CompanyKpiRow from "@/components/company-dashboard/CompanyKpiRow";
 import UpcomingDeparturesBoard from "@/components/company-dashboard/UpcomingDeparturesBoard";
+import CompanyRoutesCard from "@/components/company-dashboard/CompanyRoutesCard";
 import RecentBookingsCard from "@/components/company-dashboard/RecentBookingsCard";
 import QuickActionsCard from "@/components/company-dashboard/QuickActionsCard";
 // import RequireAuth from "@/components/auth/RequiereAuth"; // bloqueo desactivado temporalmente
@@ -18,12 +19,13 @@ export default function CompanyDashboardPage() {
   const [effectiveCompanyId, setEffectiveCompanyId] = useState(companyId);
   const [isFallback, setIsFallback] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [tripsRefreshKey, setTripsRefreshKey] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
-    setIsLoading(true);
 
     (async () => {
+      setIsLoading(true);
       let result = await fetchCompany(companyId);
       let resolvedId = companyId;
       let usedFallback = false;
@@ -73,15 +75,25 @@ export default function CompanyDashboardPage() {
               </div>
             )}
             <CompanyTopBar company={{ name: company.name }} />
-            <CompanyKpiRow companyId={effectiveCompanyId} />
+            <CompanyKpiRow key={`kpi-${tripsRefreshKey}`} companyId={effectiveCompanyId} />
 
             <div className="mt-6">
-              <UpcomingDeparturesBoard companyId={effectiveCompanyId} />
+              <UpcomingDeparturesBoard
+                key={`departures-${tripsRefreshKey}`}
+                companyId={effectiveCompanyId}
+              />
+            </div>
+
+            <div className="mt-6">
+              <CompanyRoutesCard companyId={effectiveCompanyId} />
             </div>
 
             <div className="mt-6 grid gap-6 xl:grid-cols-[1fr_380px]">
-              <RecentBookingsCard />
-              <QuickActionsCard companyId={effectiveCompanyId} />
+              <RecentBookingsCard companyId={effectiveCompanyId} />
+              <QuickActionsCard
+                companyId={effectiveCompanyId}
+                onTripCreated={() => setTripsRefreshKey((prev) => prev + 1)}
+              />
             </div>
           </main>
         </div>
