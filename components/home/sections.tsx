@@ -284,12 +284,6 @@ export const PopularRoutes = () => {
               Los recorridos más buscados esta semana en la plataforma.
             </p>
           </div>
-          <a
-            href="#"
-            className="hidden text-sm font-semibold text-secondary hover:underline sm:block"
-          >
-            Ver todas
-          </a>
         </div>
 
         <div className="mt-6 flex flex-wrap items-end gap-3 rounded-xl border border-border bg-card p-4">
