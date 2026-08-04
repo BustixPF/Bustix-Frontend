@@ -162,6 +162,20 @@ export const fetchTripById = async (id: string): Promise<ApiTrip | null> => {
   }
 };
 
+export interface CreateTripPayload {
+  companyId: string;
+  origin: string;
+  destination: string;
+  departureDate: string;
+  price: number;
+  totalSeats: number;
+}
+
+export const createTrip = async (payload: CreateTripPayload): Promise<ApiTrip> => {
+  const { data } = await api.post("/trips", payload);
+  return data;
+};
+
 export const fetchAvailableSeats = async (tripId: string): Promise<ApiSeat[]> => {
   try {
     const { data } = await api.get(`/trips/${tripId}/seats`);
@@ -208,6 +222,27 @@ export interface ApiTicket {
 export const fetchMyTickets = async (): Promise<ApiTicket[]> => {
   try {
     const { data } = await api.get("/dashboard/user/tickets");
+    return data;
+  } catch {
+    return [];
+  }
+};
+
+export interface ApiSale {
+  id: string;
+  origin: string;
+  destination: string;
+  price: number;
+  purchaseDate: string;
+  user: { id: string; name: string } | null;
+  company: { id: string; name: string } | null;
+}
+
+// El backend todavía no filtra este historial por empresa (devuelve las
+// ventas de todas las empresas) — hay que filtrar por companyId en el cliente.
+export const fetchSalesHistory = async (): Promise<ApiSale[]> => {
+  try {
+    const { data } = await api.get("/dashboard/admin/sales-history");
     return data;
   } catch {
     return [];

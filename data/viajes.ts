@@ -36,6 +36,18 @@ function routeKey(companyId: string, origin: string, destination: string): strin
   return `${companyId}|${normalizeCityName(origin)}|${normalizeCityName(destination)}`;
 }
 
+// Extrae el día calendario de un timestamp real (trip.departureDate) usando
+// la hora LOCAL del navegador, no UTC — un viaje que sale a las 8pm en
+// Colombia (UTC-5) cae en el día siguiente en UTC, así que usar
+// toISOString() acá corre la fecha un día y desincroniza el filtro del
+// home con la disponibilidad real que ve /viajes.
+export function toLocalDateISO(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 // GET /trips no trae duración ni el nombre de la empresa (solo companyId) —
 // se arma un mapa desde /routes (que sí los tiene) para enriquecer cada trip.
 // Si una empresa tiene dos rutas iguales (mismo origen/destino), nos quedamos
@@ -110,18 +122,11 @@ export async function isDateAvailableForRoute(
   const trips = await fetchTrips();
   const o = normalizeCityName(origin);
   const d = normalizeCityName(destination);
-  const target = new Date(`${dateISO}T00:00:00`);
-
   return trips.some((trip) => {
     if (normalizeCityName(trip.origin) !== o || normalizeCityName(trip.destination) !== d) {
       return false;
     }
-    const departure = new Date(trip.departureDate);
-    return (
-      departure.getFullYear() === target.getFullYear() &&
-      departure.getMonth() === target.getMonth() &&
-      departure.getDate() === target.getDate()
-    );
+    return toLocalDateISO(new Date(trip.departureDate)) === dateISO;
   });
 }
 
@@ -175,14 +180,14 @@ export async function getAvailableDatesForRoute(
   const trips = await fetchTrips();
   const o = normalizeCityName(origin);
   const d = normalizeCityName(destination);
-  const todayIso = new Date().toISOString().slice(0, 10);
+  const todayIso = toLocalDateISO(new Date());
 
   const isoDates = new Set<string>();
   for (const trip of trips) {
     if (normalizeCityName(trip.origin) !== o || normalizeCityName(trip.destination) !== d) {
       continue;
     }
-    const iso = new Date(trip.departureDate).toISOString().slice(0, 10);
+    const iso = toLocalDateISO(new Date(trip.departureDate));
     if (iso >= todayIso) {
       isoDates.add(iso);
     }

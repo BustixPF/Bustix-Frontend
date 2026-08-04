@@ -4,7 +4,7 @@ import type { ComponentType, SVGProps } from "react";
 import Link from "next/link";
 import SearchForm from "@/components/forms/home/SearchForm";
 import { fetchRoutes, fetchTrips, type ApiRoute, type ApiTrip } from "@/lib/api";
-import { formatDateLabel } from "@/data/viajes";
+import { formatDateLabel, toLocalDateISO } from "@/data/viajes";
 import {
   upcomingDepartures,
   benefits,
@@ -233,10 +233,10 @@ export const PopularRoutes = () => {
   // Solo fechas (desde hoy en adelante) en las que de verdad hay al menos un
   // viaje programado, para que el filtro no ofrezca fechas vacías.
   const dateOptions = useMemo(() => {
-    const todayIso = new Date().toISOString().slice(0, 10);
+    const todayIso = toLocalDateISO(new Date());
     const isoDates = new Set<string>();
     for (const trip of apiTrips) {
-      const iso = new Date(trip.departureDate).toISOString().slice(0, 10);
+      const iso = toLocalDateISO(new Date(trip.departureDate));
       if (iso >= todayIso) {
         isoDates.add(iso);
       }
@@ -254,7 +254,7 @@ export const PopularRoutes = () => {
           if (trip.origin !== route.origin || trip.destination !== route.destination) {
             return false;
           }
-          return new Date(trip.departureDate).toISOString().slice(0, 10) === date;
+          return toLocalDateISO(new Date(trip.departureDate)) === date;
         });
         if (!hasTripOnDate) return false;
       }
@@ -284,12 +284,6 @@ export const PopularRoutes = () => {
               Los recorridos más buscados esta semana en la plataforma.
             </p>
           </div>
-          <a
-            href="#"
-            className="hidden text-sm font-semibold text-secondary hover:underline sm:block"
-          >
-            Ver todas
-          </a>
         </div>
 
         <div className="mt-6 flex flex-wrap items-end gap-3 rounded-xl border border-border bg-card p-4">

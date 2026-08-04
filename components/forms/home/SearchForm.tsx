@@ -3,9 +3,9 @@ import { useEffect, useMemo, useState } from "react";
 import { useFormik } from "formik";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { searchInitialValues, searchValidationSchema, todayISO } from "@/components/forms/home/SearchSchema";
+import { searchInitialValues, searchValidationSchema } from "@/components/forms/home/SearchSchema";
 import { fetchTrips, type ApiTrip } from "@/lib/api";
-import { normalizeCityName } from "@/data/viajes";
+import { normalizeCityName, toLocalDateISO } from "@/data/viajes";
 import DepartureDatePicker from "@/components/DepartureDatePicker";
 
 const ArrowLeftRight = ({ className }: { className?: string }) => (
@@ -19,12 +19,17 @@ const Search = ({ className }: { className?: string }) => (
 const SearchForm = () => {
   const router = useRouter();
   const [trips, setTrips] = useState<ApiTrip[]>([]);
+  const [tripsLoaded, setTripsLoaded] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    fetchTrips().then((data) => {
-      if (!cancelled) setTrips(data);
-    });
+    fetchTrips()
+      .then((data) => {
+        if (!cancelled) setTrips(data);
+      })
+      .finally(() => {
+        if (!cancelled) setTripsLoaded(true);
+      });
     return () => {
       cancelled = true;
     };
@@ -43,9 +48,6 @@ const SearchForm = () => {
     formik.values.origin.trim() && formik.values.destination.trim()
   );
 
-  // Solo cuando origen y destino coinciden con una ruta real mostramos las
-  // fechas en las que de verdad hay viajes — si no, el usuario elige a ciegas
-  // y termina en un resultado vacío en /viajes.
   const availableDates = useMemo(() => {
     const origin = formik.values.origin.trim();
     const destination = formik.values.destination.trim();
@@ -53,14 +55,14 @@ const SearchForm = () => {
 
     const o = normalizeCityName(origin);
     const d = normalizeCityName(destination);
-    const todayIso = todayISO();
+    const todayIso = toLocalDateISO(new Date());
     const isoDates = new Set<string>();
 
     for (const trip of trips) {
       if (normalizeCityName(trip.origin) !== o || normalizeCityName(trip.destination) !== d) {
         continue;
       }
-      const iso = new Date(trip.departureDate).toISOString().slice(0, 10);
+      const iso = toLocalDateISO(new Date(trip.departureDate));
       if (iso >= todayIso) {
         isoDates.add(iso);
       }
@@ -70,7 +72,13 @@ const SearchForm = () => {
   }, [trips, formik.values.origin, formik.values.destination]);
 
   useEffect(() => {
-    if (availableDates.length === 0) return;
+    if (availableDates.length === 0) {
+
+      if (formik.values.departureDate) {
+        formik.setFieldValue("departureDate", "");
+      }
+      return;
+    }
     if (!availableDates.includes(formik.values.departureDate)) {
       formik.setFieldValue("departureDate", availableDates[0]);
     }
@@ -89,27 +97,32 @@ const SearchForm = () => {
     event.preventDefault();
 
     const errors = await formik.validateForm();
-    formik.setTouched({ origin: true, destination: true, departureDate: true });
+    formik.setTouched({ origin: true, destination: true });
 
     if (errors.origin || errors.destination) {
       return;
     }
 
-    if (!formik.values.departureDate) {
-      toast.error("Falta la fecha de ida", {
-        description: "Elige una fecha para poder buscar los buses disponibles.",
+    if (!tripsLoaded) {
+      toast.info("Un momento", {
+        description: "Todavía estamos cargando las rutas disponibles, intenta de nuevo en un segundo.",
       });
       return;
     }
 
-    if (errors.departureDate) {
-      toast.error("Fecha de ida inválida", {
-        description: errors.departureDate,
+    if (availableDates.length === 0) {
+      toast.error("Ruta no disponible", {
+        description: "No encontramos viajes programados para esa ruta en este momento. Ve a rutas populares y filtra la ruta que quieras",
       });
       return;
     }
 
-    formik.handleSubmit(event);
+    const departureDate = availableDates.includes(formik.values.departureDate)
+      ? formik.values.departureDate
+      : availableDates[0];
+
+    const query = `origen=${encodeURIComponent(formik.values.origin)}&destino=${encodeURIComponent(formik.values.destination)}&fecha=${departureDate}`;
+    router.push(`/viajes?${query}`);
   };
 
   return (
