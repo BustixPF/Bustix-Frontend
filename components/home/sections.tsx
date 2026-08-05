@@ -4,15 +4,15 @@ import type { ComponentType, SVGProps } from "react";
 import Link from "next/link";
 import SearchForm from "@/components/forms/home/SearchForm";
 import { fetchRoutes, fetchTrips, type ApiRoute, type ApiTrip } from "@/lib/api";
-import { formatDateLabel, toLocalDateISO } from "@/data/viajes";
+import { formatDateLabel, formatTime, toLocalDateISO } from "@/data/viajes";
 import {
-  upcomingDepartures,
   benefits,
   howItWorksSteps,
   partners,
   formatCOP,
   type BenefitIcon,
   type DepartureStatus,
+  type UpcomingDeparture,
 } from "@/data/home";
 
 interface PopularRouteCard {
@@ -428,7 +428,47 @@ const STATUS_TEXT_CLASSES: Record<DepartureStatus, string> = {
   embarcando: "text-primary",
 };
 
+// El "Estado" (a-tiempo/embarcando) no tiene ningun dato real detras - el
+// backend no tiene tracking en vivo de buses - se deja mockeado a proposito,
+// ciclando sobre esta lista, mientras el resto de la fila (ruta, empresa,
+// hora de salida) ya sale de GET /trips + GET /routes.
+const MOCK_STATUSES: DepartureStatus[] = ["a-tiempo", "a-tiempo", "embarcando", "a-tiempo"];
+
 export const UpcomingDepartures = () => {
+  const [departures, setDepartures] = useState<UpcomingDeparture[] | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    Promise.all([fetchTrips(), fetchRoutes()]).then(([trips, routes]) => {
+      if (cancelled) return;
+
+      const companyNameByCompanyId = new Map<string, string>();
+      for (const route of routes) {
+        companyNameByCompanyId.set(route.companyId, route.company.name);
+      }
+
+      const now = Date.now();
+      const upcoming = trips
+        .filter((trip) => new Date(trip.departureDate).getTime() > now)
+        .sort((a, b) => new Date(a.departureDate).getTime() - new Date(b.departureDate).getTime())
+        .slice(0, 4)
+        .map((trip, index) => ({
+          id: trip.id,
+          route: `${trip.origin} → ${trip.destination}`,
+          company: companyNameByCompanyId.get(trip.companyId) ?? "—",
+          departureTime: formatTime(new Date(trip.departureDate)),
+          status: MOCK_STATUSES[index % MOCK_STATUSES.length],
+        }));
+
+      setDepartures(upcoming);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <section id="proximas-salidas" className="bustix-dark bg-background px-4 py-16 sm:px-8">
       <div className="mx-auto max-w-6xl">
@@ -450,24 +490,38 @@ export const UpcomingDepartures = () => {
               </tr>
             </thead>
             <tbody>
-              {upcomingDepartures.map((departure) => (
-                <tr key={departure.id} className="border-t border-border text-foreground">
-                  <td className="font-mono-label px-5 py-4 font-medium">{departure.route}</td>
-                  <td className="font-mono-label px-5 py-4 text-muted-foreground">{departure.company}</td>
-                  <td
-                    className={`font-mono-label px-5 py-4 font-bold ${STATUS_TEXT_CLASSES[departure.status]}`}
-                  >
-                    {departure.departureTime}
-                  </td>
-                  <td className="px-5 py-4">
-                    <span
-                      className={`font-mono-label inline-flex items-center rounded-full px-3 py-1 text-xs font-bold ${STATUS_CLASSES[departure.status]}`}
-                    >
-                      {STATUS_LABEL[departure.status]}
-                    </span>
+              {departures === null ? (
+                <tr>
+                  <td className="px-5 py-4 text-muted-foreground" colSpan={4}>
+                    Cargando…
                   </td>
                 </tr>
-              ))}
+              ) : departures.length === 0 ? (
+                <tr>
+                  <td className="px-5 py-4 text-muted-foreground" colSpan={4}>
+                    No hay viajes programados por ahora.
+                  </td>
+                </tr>
+              ) : (
+                departures.map((departure) => (
+                  <tr key={departure.id} className="border-t border-border text-foreground">
+                    <td className="font-mono-label px-5 py-4 font-medium">{departure.route}</td>
+                    <td className="font-mono-label px-5 py-4 text-muted-foreground">{departure.company}</td>
+                    <td
+                      className={`font-mono-label px-5 py-4 font-bold ${STATUS_TEXT_CLASSES[departure.status]}`}
+                    >
+                      {departure.departureTime}
+                    </td>
+                    <td className="px-5 py-4">
+                      <span
+                        className={`font-mono-label inline-flex items-center rounded-full px-3 py-1 text-xs font-bold ${STATUS_CLASSES[departure.status]}`}
+                      >
+                        {STATUS_LABEL[departure.status]}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

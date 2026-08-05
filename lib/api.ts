@@ -164,6 +164,7 @@ export const fetchTripById = async (id: string): Promise<ApiTrip | null> => {
 
 export interface CreateTripPayload {
   companyId: string;
+  routeId: number;
   origin: string;
   destination: string;
   departureDate: string;
@@ -217,6 +218,12 @@ export interface ApiTicket {
   price: number;
   purchaseDate: string;
   company: { id: string; name: string } | null;
+  // Requiere el fix de backend pendiente (Ticket -> Trip): si el backend
+  // todavia no lo manda, estos campos llegan undefined y el front cae al
+  // estado vacio.
+  tripId?: string | null;
+  seatNumber?: number | null;
+  departureDate?: string | null;
 }
 
 export const fetchMyTickets = async (): Promise<ApiTicket[]> => {

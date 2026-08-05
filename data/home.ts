@@ -85,13 +85,6 @@ export const popularRoutes: PopularRoute[] = [
   },
 ];
 
-export const upcomingDepartures: UpcomingDeparture[] = [
-  { id: "dep-1", route: "Medellín → Bogotá", company: "Rápido Ochoa", departureTime: "4:30 PM", status: "a-tiempo" },
-  { id: "dep-2", route: "Bogotá → Girardot", company: "Coocotal", departureTime: "7:15 AM", status: "a-tiempo" },
-  { id: "dep-3", route: "Bucaramanga → Pereira", company: "Flota Occidental", departureTime: "5:00 PM", status: "embarcando" },
-  { id: "dep-4", route: "Bogotá → Tunja", company: "Berlinas del Fonce", departureTime: "8:45 AM", status: "a-tiempo" },
-];
-
 export const benefits: Benefit[] = [
   { id: "compare", icon: "compare", title: "Compara empresas", description: "Todos los operadores en un solo lugar." },
   { id: "payment", icon: "payment", title: "Pago seguro", description: "Procesamos tu pago con múltiples métodos." },
