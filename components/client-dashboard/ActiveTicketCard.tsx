@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { QRCodeSVG } from "qrcode.react";
 import { fetchMyTickets, type ApiTicket } from "@/lib/api";
 import {
   getTripById,
@@ -9,27 +10,7 @@ import {
   toLocalDateISO,
   type Trip,
 } from "@/data/viajes";
-
-const QrCodeIcon = () => (
-  <svg
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className="h-10 w-10"
-    aria-hidden
-  >
-    <path d="M4 4h6v6H4z" />
-    <path d="M14 4h6v6h-6z" />
-    <path d="M4 14h6v6H4z" />
-    <path d="M10 14h2v2h-2z" />
-    <path d="M14 10h2v2h-2z" />
-    <path d="M18 14h2v2h-2z" />
-    <path d="M18 18h2v2h-2z" />
-  </svg>
-);
+import QrCodeModal from "@/components/client-dashboard/QrCodeModal";
 
 interface ActiveTicket {
   trip: Trip;
@@ -73,6 +54,7 @@ const findUpcomingTicket = (tickets: ApiTicket[]): ApiTicket | null => {
 const ActiveTicketCard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [active, setActive] = useState<ActiveTicket | null>(null);
+  const [isQrModalOpen, setIsQrModalOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -165,12 +147,27 @@ const ActiveTicketCard = () => {
         </div>
 
         <div className="flex flex-col items-center gap-2">
-          <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-lg bg-foreground text-background">
-            <QrCodeIcon />
-          </div>
-          <p className="font-mono-label text-[10px] text-muted-foreground">Código QR</p>
+          <button
+            type="button"
+            onClick={() => setIsQrModalOpen(true)}
+            aria-label="Ampliar código QR"
+            className="flex h-24 w-24 shrink-0 items-center justify-center rounded-lg bg-white p-2 transition-transform hover:scale-105"
+          >
+            <QRCodeSVG value={trip.id} size={80} bgColor="#ffffff" fgColor="#000000" level="M" />
+          </button>
+          {/* El QR hoy solo codifica el id del viaje, sin firmar - sirve
+              como identificador visual pero el backend todavia no tiene
+              ningun endpoint para validarlo/escanearlo en la terminal. */}
+          <p className="font-mono-label text-[10px] text-muted-foreground">Toca para ampliar</p>
         </div>
       </div>
+
+      <QrCodeModal
+        isOpen={isQrModalOpen}
+        value={trip.id}
+        title={`${trip.origin} → ${trip.destination}`}
+        onClose={() => setIsQrModalOpen(false)}
+      />
     </div>
   );
 };

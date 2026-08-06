@@ -47,9 +47,20 @@ export default function GoogleCallbackPage() {
       }
 
       // 5. Redirigimos a la reserva pendiente o al Dashboard que corresponda según su Rol
-      router.replace(
-        pendingReservation ?? getDashboardPathForRole(profile.role)
-      );
+      if (pendingReservation) {
+        router.replace(pendingReservation);
+        return;
+      }
+
+      const destination = getDashboardPathForRole(profile.role, profile.companyId);
+      if (!destination) {
+        toast.error("Tu cuenta no tiene una empresa asociada", {
+          description: "Contacta a soporte para vincular tu cuenta a una empresa.",
+        });
+        router.replace("/");
+        return;
+      }
+      router.replace(destination);
     })();
 
     return () => {

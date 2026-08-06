@@ -19,9 +19,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${workSans.variable} ${jetbrainsMono.variable} ${bigShouldersDisplay.variable} h-full antialiased`}
+      className={`${workSans.variable} ${jetbrainsMono.variable} ${bigShouldersDisplay.variable} h-full overflow-x-hidden antialiased`}
     >
-      <body className="min-h-screen font-sans">
+      <body className="min-h-screen overflow-x-hidden font-sans">
         <AuthProvider>
           <Navbar />
           {children}

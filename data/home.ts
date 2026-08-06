@@ -1,20 +1,10 @@
-export interface PopularRoute {
-  id: string;
-  origin: string;
-  destination: string;
-  company: string;
-  companiesCount: number;
-  durationFrom: string;
-  price: number;
-  availableDays: string[];
-}
-
 export type DepartureStatus = "a-tiempo" | "embarcando";
 
 export interface UpcomingDeparture {
   id: string;
   route: string;
   company: string;
+  departureDateLabel: string;
   departureTime: string;
   status: DepartureStatus;
 }
@@ -37,54 +27,6 @@ export interface HowItWorksStep {
   description: string;
 }
 
-export interface Partner {
-  id: string;
-  name: string;
-}
-
-export const popularRoutes: PopularRoute[] = [
-  {
-    id: "medellin-cali",
-    origin: "Medellín",
-    destination: "Cali",
-    company: "Rápido Ochoa",
-    companiesCount: 10,
-    durationFrom: "8h 00m",
-    price: 62000,
-    availableDays: ["Lunes", "Miércoles", "Viernes", "Domingo"],
-  },
-  {
-    id: "cali-pasto",
-    origin: "Cali",
-    destination: "Pasto",
-    company: "Flota Occidental",
-    companiesCount: 12,
-    durationFrom: "10h 00m",
-    price: 28000,
-    availableDays: ["Martes", "Jueves", "Sábado"],
-  },
-  {
-    id: "cartagena-barranquilla",
-    origin: "Cartagena",
-    destination: "Barranquilla",
-    company: "Berlinas del Fonce",
-    companiesCount: 6,
-    durationFrom: "2h 30m",
-    price: 18500,
-    availableDays: ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"],
-  },
-  {
-    id: "bogota-bucaramanga",
-    origin: "Bogotá",
-    destination: "Bucaramanga",
-    company: "Coocotal",
-    companiesCount: 8,
-    durationFrom: "9h 00m",
-    price: 71000,
-    availableDays: ["Miércoles", "Sábado", "Domingo"],
-  },
-];
-
 export const benefits: Benefit[] = [
   { id: "compare", icon: "compare", title: "Compara empresas", description: "Todos los operadores en un solo lugar." },
   { id: "payment", icon: "payment", title: "Pago seguro", description: "Procesamos tu pago con múltiples métodos." },
@@ -97,14 +39,6 @@ export const howItWorksSteps: HowItWorksStep[] = [
   { id: "buscar", number: "01", label: "Buscar", title: "Elige tu ruta y fecha", description: "Compara en un solo vistazo precios y tiempos de viaje entre todas las empresas." },
   { id: "elegir", number: "02", label: "Elegir", title: "Selecciona tu silla", description: "Mira el mapa del bus real y escoge el puesto que más te acomode, sin sorpresas." },
   { id: "recibir", number: "03", label: "Recibir", title: "Recibe tu tiquete digital", description: "Te llega tu código QR y tu tiquete a tu correo, ya lo puedes presentar en la terminal." },
-];
-
-export const partners: Partner[] = [
-  { id: "expreso", name: "Expreso" },
-  { id: "coocotal", name: "Coocotal" },
-  { id: "rapido-ochoa", name: "Rápido Ochoa" },
-  { id: "flota-occidental", name: "Flota Occidental" },
-  { id: "berlinas-del-fonce", name: "Berlinas del Fonce" },
 ];
 
 const WEEKDAYS = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];

@@ -1,11 +1,12 @@
 "use client";
 import { useEffect, useState } from "react";
 import { fetchTrips, fetchAvailableSeats, type ApiTrip } from "@/lib/api";
-import { formatTime } from "@/data/viajes";
+import { formatTime, formatDateLabel, toLocalDateISO } from "@/data/viajes";
 
 interface Departure {
   id: string;
   route: string;
+  date: string;
   time: string;
   occupancy: string;
 }
@@ -39,6 +40,7 @@ const UpcomingDeparturesBoard = ({ companyId }: UpcomingDeparturesBoardProps) =>
         upcoming.map(async (trip) => ({
           id: trip.id,
           route: `${trip.origin} → ${trip.destination}`,
+          date: formatDateLabel(toLocalDateISO(new Date(trip.departureDate))),
           time: formatTime(new Date(trip.departureDate)),
           occupancy: await buildOccupancy(trip),
         }))
@@ -64,10 +66,11 @@ const UpcomingDeparturesBoard = ({ companyId }: UpcomingDeparturesBoardProps) =>
         <p className="mt-4 text-sm text-muted-foreground">No hay viajes próximos programados.</p>
       ) : (
         <div className="mt-4 overflow-x-auto">
-          <table className="w-full min-w-[420px] border-separate border-spacing-y-2 text-left text-sm">
+          <table className="w-full min-w-[520px] border-separate border-spacing-y-2 text-left text-sm">
             <thead>
               <tr className="font-mono-label text-xs uppercase text-muted-foreground">
                 <th className="px-3 py-2 font-normal">Ruta</th>
+                <th className="px-3 py-2 font-normal">Fecha</th>
                 <th className="px-3 py-2 font-normal">Hora</th>
                 <th className="px-3 py-2 font-normal">Ocupación</th>
               </tr>
@@ -78,6 +81,7 @@ const UpcomingDeparturesBoard = ({ companyId }: UpcomingDeparturesBoardProps) =>
                   <td className="font-mono-label rounded-l-lg px-3 py-3 font-medium text-foreground">
                     {departure.route}
                   </td>
+                  <td className="font-mono-label px-3 py-3 text-muted-foreground">{departure.date}</td>
                   <td className="font-mono-label px-3 py-3 text-foreground">{departure.time}</td>
                   <td className="font-mono-label rounded-r-lg px-3 py-3 text-muted-foreground">
                     {departure.occupancy}

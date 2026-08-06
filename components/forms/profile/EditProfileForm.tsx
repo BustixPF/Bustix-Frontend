@@ -1,11 +1,12 @@
 "use client";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useFormik } from "formik";
 import { toast } from "sonner";
 import EyeIcon from "@/components/forms/register/EyeIcon";
-import { api, getApiErrorMessage } from "@/lib/api";
+import { api, getApiErrorMessage, uploadProfilePicture } from "@/lib/api";
 import { useAuth } from "@/components/context/AuthContext";
+import { getInitials } from "@/lib/user";
 import {
   buildEditProfileInitialValues,
   editProfileValidationSchema,
@@ -16,6 +17,27 @@ const EditProfileForm = () => {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isUploadingPicture, setIsUploadingPicture] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handlePictureSelected = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file || !user) return;
+
+    setIsUploadingPicture(true);
+    try {
+      const { profilePicture } = await uploadProfilePicture(user.id, file);
+      login({ ...user, profilePicture });
+      toast.success("Foto de perfil actualizada");
+    } catch (error) {
+      toast.error("No se pudo subir la foto", {
+        description: getApiErrorMessage(error, "Intenta de nuevo en unos minutos"),
+      });
+    } finally {
+      setIsUploadingPicture(false);
+    }
+  };
 
   const formik = useFormik({
     initialValues: buildEditProfileInitialValues(user),
@@ -52,6 +74,38 @@ const EditProfileForm = () => {
 
   return (
     <form onSubmit={formik.handleSubmit} noValidate className="mt-6 max-w-lg">
+      <div className="flex items-center gap-4">
+        <span className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full bg-secondary text-xl font-bold text-secondary-foreground">
+          {user.profilePicture ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={user.profilePicture} alt="" className="h-full w-full object-cover" />
+          ) : (
+            getInitials(user.name)
+          )}
+        </span>
+
+        <div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handlePictureSelected}
+            className="hidden"
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isUploadingPicture}
+            className="rounded-full border border-border px-4 py-2 text-sm font-semibold text-card-foreground transition-colors hover:border-primary disabled:opacity-60"
+          >
+            {isUploadingPicture ? "Subiendo..." : "Cambiar foto"}
+          </button>
+          <p className="mt-1.5 text-xs text-muted-foreground">JPG o PNG, opcional.</p>
+        </div>
+      </div>
+
+      <div className="mt-6 border-t border-border pt-6" />
+
       <label className="block">
         <span className="font-mono-label text-xs uppercase text-muted-foreground">
           Nombre completo

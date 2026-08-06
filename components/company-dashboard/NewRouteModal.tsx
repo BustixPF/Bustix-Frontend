@@ -18,6 +18,8 @@ const CloseIcon = () => (
 const NewRouteModal = ({ isOpen, onClose }: NewRouteModalProps) => {
   const [origin, setOrigin] = useState("");
   const [destination, setDestination] = useState("");
+  const [duration, setDuration] = useState("");
+  const [price, setPrice] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!isOpen) return null;
@@ -25,6 +27,8 @@ const NewRouteModal = ({ isOpen, onClose }: NewRouteModalProps) => {
   const reset = () => {
     setOrigin("");
     setDestination("");
+    setDuration("");
+    setPrice("");
   };
 
   const handleClose = () => {
@@ -40,6 +44,8 @@ const NewRouteModal = ({ isOpen, onClose }: NewRouteModalProps) => {
         type: "add",
         origin,
         destination,
+        duration: Number(duration),
+        price: Number(price),
       });
       toast.success("Solicitud enviada", {
         description: "Tu solicitud de nueva ruta quedó pendiente de revisión.",
@@ -58,7 +64,7 @@ const NewRouteModal = ({ isOpen, onClose }: NewRouteModalProps) => {
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
       <div className="absolute inset-0 bg-black/50" onClick={handleClose} aria-hidden="true" />
 
-      <div className="relative w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-xl">
+      <div className="relative max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl border border-border bg-card p-6 shadow-xl">
         <div className="flex items-center justify-between">
           <h2 className="font-display text-lg text-card-foreground">Solicitar nueva ruta</h2>
           <button
@@ -99,6 +105,38 @@ const NewRouteModal = ({ isOpen, onClose }: NewRouteModalProps) => {
               className="mt-1.5 w-full rounded-lg border border-border bg-muted px-4 py-2.5 text-sm text-card-foreground outline-none focus:border-primary"
             />
           </label>
+
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            <label className="block">
+              <span className="font-mono-label text-xs uppercase text-muted-foreground">
+                Duración (min)
+              </span>
+              <input
+                type="number"
+                required
+                min={1}
+                placeholder="360"
+                value={duration}
+                onChange={(event) => setDuration(event.target.value)}
+                className="mt-1.5 w-full rounded-lg border border-border bg-muted px-4 py-2.5 text-sm text-card-foreground outline-none focus:border-primary"
+              />
+            </label>
+
+            <label className="block">
+              <span className="font-mono-label text-xs uppercase text-muted-foreground">
+                Precio
+              </span>
+              <input
+                type="number"
+                required
+                min={1}
+                placeholder="85000"
+                value={price}
+                onChange={(event) => setPrice(event.target.value)}
+                className="mt-1.5 w-full rounded-lg border border-border bg-muted px-4 py-2.5 text-sm text-card-foreground outline-none focus:border-primary"
+              />
+            </label>
+          </div>
 
           <div className="mt-5 flex gap-3">
             <button

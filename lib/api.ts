@@ -27,6 +27,8 @@ export interface UserProfile {
   phone?: number;
   address?: string | null;
   role: string;
+  companyId?: string | null;
+  profilePicture?: string | null;
 }
 
 // La cookie httpOnly no se puede leer desde JS (a propósito, es lo que la hace
@@ -50,6 +52,7 @@ export const fetchCurrentUser = async (): Promise<UserProfile | null> => {
         phone: 0,
         address: null,
         role: session.role,
+        companyId: null,
       };
     }
   } catch {
@@ -75,11 +78,19 @@ export interface Company {
   email: string;
 }
 
-// TODO: quitar cuando el backend vincule un usuario "admin" con su empresa real.
-export const DEMO_COMPANY_ID = "dacee2cc-0f36-4aaf-a107-a19a57c92475";
-
-export const getDashboardPathForRole = (role: string): string =>
-  role === "admin" ? `/empresa/dashboard/${DEMO_COMPANY_ID}` : "/cliente/dashboard";
+// Admin sin companyId es un estado inconsistente (cuenta vieja o promovida
+// manualmente sin pasar por la aprobación de una solicitud de empresa) - no
+// hay a donde mandarlo, así que se devuelve null y el que llama decide cómo
+// avisarle en vez de asumir una empresa cualquiera.
+export const getDashboardPathForRole = (
+  role: string,
+  companyId?: string | null
+): string | null => {
+  if (role === "admin") {
+    return companyId ? `/empresa/dashboard/${companyId}` : null;
+  }
+  return "/cliente/dashboard";
+};
 
 export const fetchCompany = async (companyId: string): Promise<Company | null> => {
   try {
@@ -127,6 +138,24 @@ export const uploadCompanyDocument = async (companyId: string, file: File) => {
   return data;
 };
 
+// El endpoint existe (POST /file-upload/user/:userId) pero hoy esta roto del
+// lado del backend: lee el companyId de la ruta en vez del userId, y aunque
+// se arreglara ese typo, el repositorio solo sabe buscar el id en la tabla
+// companies (no existe ningun vinculo Document->User ni columna
+// profilePicture en User). Se deja conectado ya, apuntando al contrato que
+// se espera una vez lo arreglen: sube el archivo y devuelve la URL nueva.
+export const uploadProfilePicture = async (
+  userId: string,
+  file: File
+): Promise<{ profilePicture: string }> => {
+  const formData = new FormData();
+  formData.append("file", file);
+  const { data } = await api.post(`/file-upload/user/${userId}`, formData, {
+    headers: { "Content-Type": undefined },
+  });
+  return data;
+};
+
 export interface ApiTrip {
   id: string;
   companyId: string;
@@ -162,7 +191,15 @@ export const fetchTripById = async (id: string): Promise<ApiTrip | null> => {
   }
 };
 
-export interface CreateTripPayload {
+export interface RequestSchedulePayload {
+  routeId: number;
+  departureDate: string;
+  price: number;
+  totalSeats: number;
+}
+
+export interface ScheduleRequestResponse {
+  id: string;
   companyId: string;
   routeId: number;
   origin: string;
@@ -170,10 +207,17 @@ export interface CreateTripPayload {
   departureDate: string;
   price: number;
   totalSeats: number;
+  status: "pending" | "accepted" | "rejected";
+  createdTripId?: string;
 }
 
-export const createTrip = async (payload: CreateTripPayload): Promise<ApiTrip> => {
-  const { data } = await api.post("/trips", payload);
+// Ya no se puede crear un Trip directo desde el dashboard de empresa
+// (POST /trips quedo restringido a superAdmin) - esto crea una solicitud
+// pendiente que el superadmin aprueba o rechaza desde su panel.
+export const requestSchedule = async (
+  payload: RequestSchedulePayload
+): Promise<ScheduleRequestResponse> => {
+  const { data } = await api.post("/dashboard/admin/schedules", payload);
   return data;
 };
 

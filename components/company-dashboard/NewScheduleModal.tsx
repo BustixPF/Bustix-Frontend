@@ -1,13 +1,12 @@
 "use client";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { createTrip, fetchRoutes, getApiErrorMessage, type ApiRoute } from "@/lib/api";
+import { requestSchedule, fetchRoutes, getApiErrorMessage, type ApiRoute } from "@/lib/api";
 
 interface NewScheduleModalProps {
   isOpen: boolean;
   companyId: string;
   onClose: () => void;
-  onCreated: () => void;
 }
 
 const CloseIcon = () => (
@@ -17,7 +16,7 @@ const CloseIcon = () => (
   </svg>
 );
 
-const NewScheduleModal = ({ isOpen, companyId, onClose, onCreated }: NewScheduleModalProps) => {
+const NewScheduleModal = ({ isOpen, companyId, onClose }: NewScheduleModalProps) => {
   const [routes, setRoutes] = useState<ApiRoute[] | null>(null);
   const [selectedRouteId, setSelectedRouteId] = useState("");
   const [departureDate, setDepartureDate] = useState("");
@@ -72,22 +71,18 @@ const NewScheduleModal = ({ isOpen, companyId, onClose, onCreated }: NewSchedule
 
     setIsSubmitting(true);
     try {
-      await createTrip({
-        companyId,
+      await requestSchedule({
         routeId: Number(route.id),
-        origin: route.origin,
-        destination: route.destination,
         departureDate: new Date(departureDate).toISOString(),
         price: Number(price),
         totalSeats: Number(totalSeats),
       });
-      toast.success("Horario creado", {
-        description: "El nuevo viaje ya quedó disponible para reservar.",
+      toast.success("Solicitud enviada", {
+        description: "Tu solicitud de horario quedó pendiente de revisión.",
       });
-      onCreated();
       handleClose();
     } catch (error) {
-      toast.error("No se pudo crear el horario", {
+      toast.error("No se pudo enviar la solicitud", {
         description: getApiErrorMessage(error, "Intenta de nuevo en unos minutos"),
       });
     } finally {
@@ -99,7 +94,7 @@ const NewScheduleModal = ({ isOpen, companyId, onClose, onCreated }: NewSchedule
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
       <div className="absolute inset-0 bg-black/50" onClick={handleClose} aria-hidden="true" />
 
-      <div className="relative w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-xl">
+      <div className="relative max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl border border-border bg-card p-6 shadow-xl">
         <div className="flex items-center justify-between">
           <h2 className="font-display text-lg text-card-foreground">Nuevo horario</h2>
           <button
@@ -197,7 +192,7 @@ const NewScheduleModal = ({ isOpen, companyId, onClose, onCreated }: NewSchedule
                 disabled={isSubmitting}
                 className="flex-1 rounded-full bg-primary py-3 text-sm font-bold text-primary-foreground transition-colors hover:bg-accent hover:text-accent-foreground disabled:opacity-60"
               >
-                {isSubmitting ? "Creando..." : "Crear horario"}
+                {isSubmitting ? "Enviando..." : "Enviar solicitud"}
               </button>
             </div>
           </form>
