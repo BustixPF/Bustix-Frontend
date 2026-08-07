@@ -71,11 +71,22 @@ export const logoutRequest = async (): Promise<void> => {
   }
 };
 
+export interface CompanyDocument {
+  id: string;
+  url: string;
+  filename: string;
+  mimetype: string;
+}
+
 export interface Company {
   id: string;
   name: string;
   nit: string;
   email: string;
+  phone?: string;
+  status?: "pending" | "approved" | "rejected";
+  rejectionReason?: string | null;
+  documents?: CompanyDocument[];
 }
 
 // Admin sin companyId es un estado inconsistente (cuenta vieja o promovida
@@ -86,6 +97,9 @@ export const getDashboardPathForRole = (
   role: string,
   companyId?: string | null
 ): string | null => {
+  if (role === "superAdmin") {
+    return "/superadmin/dashboard";
+  }
   if (role === "admin") {
     return companyId ? `/empresa/dashboard/${companyId}` : null;
   }
@@ -108,6 +122,19 @@ export const fetchCompanies = async (): Promise<Company[]> => {
   } catch {
     return [];
   }
+};
+
+export const approveCompany = async (companyId: string): Promise<Company> => {
+  const { data } = await api.patch(`/companies/${companyId}/approve`);
+  return data;
+};
+
+export const rejectCompany = async (
+  companyId: string,
+  reason?: string
+): Promise<Company> => {
+  const { data } = await api.patch(`/companies/${companyId}/reject`, reason ? { reason } : {});
+  return data;
 };
 
 export interface ApiRoute {
@@ -297,5 +324,31 @@ export const fetchSalesHistory = async (): Promise<ApiSale[]> => {
     return data;
   } catch {
     return [];
+  }
+};
+
+export interface AdminMetrics {
+  overview: {
+    totalIncome: number;
+    totalPaidTransactions: number;
+    totalTicketsSold: number;
+    activeCompanies: number;
+    totalUsers: number;
+  };
+  charts: {
+    salesOverTime: { date: string; total: number; count: number }[];
+    topRoutes: { route: string; ticketsSold: number }[];
+  };
+}
+
+// Metricas globales de la plataforma (no filtran por empresa, ni siquiera
+// cuando las consulta un Admin) - solo tiene sentido para el dashboard de
+// superAdmin.
+export const fetchAdminMetrics = async (): Promise<AdminMetrics | null> => {
+  try {
+    const { data } = await api.get("/admin/metrics");
+    return data;
+  } catch {
+    return null;
   }
 };
