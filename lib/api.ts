@@ -240,7 +240,7 @@ export interface ScheduleRequestResponse {
 
 // Ya no se puede crear un Trip directo desde el dashboard de empresa
 // (POST /trips quedo restringido a superAdmin) - esto crea una solicitud
-// pendiente que el superadmin aprueba o rechaza desde su panel.
+
 export const requestSchedule = async (
   payload: RequestSchedulePayload
 ): Promise<ScheduleRequestResponse> => {
@@ -351,4 +351,86 @@ export const fetchAdminMetrics = async (): Promise<AdminMetrics | null> => {
   } catch {
     return null;
   }
+};
+
+export interface RequestedByUser {
+  id: string;
+  name: string;
+  email: string;
+}
+
+export type RequestStatus = "pending" | "accepted" | "rejected";
+
+export interface RouteRequestItem {
+  id: string;
+  type: "add" | "delete";
+  origin?: string;
+  destination?: string;
+  stops?: string[];
+  duration?: number;
+  price?: number;
+  companyId?: string;
+  routeId?: string;
+  status: RequestStatus;
+  message?: string;
+  requestedBy: RequestedByUser | null;
+}
+
+// GET ya filtra por status "pending" del lado del backend.
+export const fetchRouteRequests = async (): Promise<RouteRequestItem[]> => {
+  try {
+    const { data } = await api.get("/dashboard/superadmin/route-requests");
+    return data;
+  } catch {
+    return [];
+  }
+};
+
+export const respondRouteRequest = async (
+  id: string,
+  status: "accepted" | "rejected",
+  message?: string
+): Promise<RouteRequestItem> => {
+  const { data } = await api.post(`/dashboard/superadmin/route-requests/${id}/respond`, {
+    status,
+    ...(message ? { message } : {}),
+  });
+  return data;
+};
+
+export interface ScheduleRequestItem {
+  id: string;
+  companyId: string;
+  routeId: number;
+  origin: string;
+  destination: string;
+  departureDate: string;
+  price: number;
+  totalSeats: number;
+  status: RequestStatus;
+  createdTripId?: string;
+  message?: string;
+  requestedBy: RequestedByUser;
+}
+
+// GET ya filtra por status "pending" del lado del backend.
+export const fetchScheduleRequests = async (): Promise<ScheduleRequestItem[]> => {
+  try {
+    const { data } = await api.get("/dashboard/superadmin/schedule-requests");
+    return data;
+  } catch {
+    return [];
+  }
+};
+
+export const respondScheduleRequest = async (
+  id: string,
+  status: "accepted" | "rejected",
+  message?: string
+): Promise<ScheduleRequestItem> => {
+  const { data } = await api.post(`/dashboard/superadmin/schedule-requests/${id}/respond`, {
+    status,
+    ...(message ? { message } : {}),
+  });
+  return data;
 };

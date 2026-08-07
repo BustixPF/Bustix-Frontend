@@ -4,6 +4,8 @@ import SuperAdminSidebar from "@/components/superadmin-dashboard/SuperAdminSideb
 import SuperAdminTopBar from "@/components/superadmin-dashboard/SuperAdminTopBar";
 import MetricsOverview from "@/components/superadmin-dashboard/MetricsOverview";
 import CompanyRequestsCard from "@/components/superadmin-dashboard/CompanyRequestsCard";
+import RouteRequestsCard from "@/components/superadmin-dashboard/RouteRequestsCard";
+import ScheduleRequestsCard from "@/components/superadmin-dashboard/ScheduleRequestsCard";
 
 function SuperAdminDashboardContent() {
   return (
@@ -16,6 +18,14 @@ function SuperAdminDashboardContent() {
 
         <div className="mt-6">
           <CompanyRequestsCard />
+        </div>
+
+        <div className="mt-6">
+          <RouteRequestsCard />
+        </div>
+
+        <div className="mt-6">
+          <ScheduleRequestsCard />
         </div>
       </main>
     </div>
