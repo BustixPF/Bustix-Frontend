@@ -3,7 +3,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
 import { useAuth } from '@/components/context/AuthContext'
-import { DEMO_COMPANY_ID } from '@/lib/api'
+import { getDashboardPathForRole } from '@/lib/api'
 import MobileDrawer from '@/components/MobileDrawer'
 
 const BellIcon = () => (
@@ -96,15 +96,6 @@ const Navbar = () => {
         </Link>
       )}
 
-      {/* TODO: quitar este acceso directo cuando exista login real de empresas y un companyId ligado al usuario */}
-      <Link href={`/empresa/dashboard/${DEMO_COMPANY_ID}`} onClick={closeMenu} className="navbar-link">
-        Dashboard Empresa
-      </Link>
-
-      {/* TODO: quitar este acceso directo cuando haya un flujo real para llegar a /viajes */}
-      <Link href="/viajes" onClick={closeMenu} className="navbar-link">
-        Viajes
-      </Link>
 
       {user ? (
         <>
@@ -117,7 +108,11 @@ const Navbar = () => {
             <span className="absolute right-2 top-1.5 h-2 w-2 rounded-full bg-accent" />
           </button>
 
-          <Link href="/cliente/dashboard" onClick={closeMenu} className="navbar-link">
+          <Link
+            href={getDashboardPathForRole(user.role, user.companyId) ?? '/'}
+            onClick={closeMenu}
+            className="navbar-link"
+          >
             Hola, {user.name}
           </Link>
           <button

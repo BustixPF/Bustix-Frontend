@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useFormik } from "formik";
 import { toast } from "sonner";
 import EyeIcon from "@/components/forms/register/EyeIcon";
+import TermsModal from "@/components/forms/register/TermsModal";
+import PrivacyModal from "@/components/forms/register/PrivacyModal";
 import { api, fetchCurrentUser, getApiErrorMessage } from "@/lib/api";
 import { useAuth } from "@/components/context/AuthContext";
 import {
@@ -15,6 +17,8 @@ import {
 const PassengerRegisterForm = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isTermsOpen, setIsTermsOpen] = useState(false);
+  const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
   const { login } = useAuth();
   const router = useRouter();
 
@@ -65,6 +69,7 @@ const PassengerRegisterForm = () => {
   });
 
   return (
+    <>
     <form onSubmit={formik.handleSubmit} noValidate className="mt-4">
       <label className="block">
         <span className="font-mono-label text-xs uppercase text-muted-foreground">
@@ -226,13 +231,29 @@ const PassengerRegisterForm = () => {
         />
         <span className="text-xs text-muted-foreground">
           Acepto los{" "}
-          <a href="#" className="font-bold text-accent hover:underline">
+          <button
+            type="button"
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              setIsTermsOpen(true);
+            }}
+            className="font-bold text-accent underline-offset-2 hover:underline"
+          >
             Términos y condiciones
-          </a>{" "}
+          </button>{" "}
           y la{" "}
-          <a href="#" className="font-bold text-accent hover:underline">
+          <button
+            type="button"
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              setIsPrivacyOpen(true);
+            }}
+            className="font-bold text-accent underline-offset-2 hover:underline"
+          >
             Política de privacidad
-          </a>
+          </button>
           .
         </span>
       </label>
@@ -250,6 +271,10 @@ const PassengerRegisterForm = () => {
         {formik.isSubmitting ? "Creando cuenta..." : "Crear cuenta"}
       </button>
     </form>
+
+    <TermsModal isOpen={isTermsOpen} onClose={() => setIsTermsOpen(false)} />
+    <PrivacyModal isOpen={isPrivacyOpen} onClose={() => setIsPrivacyOpen(false)} />
+    </>
   );
 };
 

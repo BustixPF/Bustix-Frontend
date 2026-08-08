@@ -4,15 +4,15 @@ import type { ComponentType, SVGProps } from "react";
 import Link from "next/link";
 import SearchForm from "@/components/forms/home/SearchForm";
 import { fetchRoutes, fetchTrips, type ApiRoute, type ApiTrip } from "@/lib/api";
-import { formatDateLabel, toLocalDateISO } from "@/data/viajes";
+import { formatDateLabel, formatTime, toLocalDateISO } from "@/data/viajes";
+
 import {
-  upcomingDepartures,
   benefits,
   howItWorksSteps,
-  partners,
   formatCOP,
   type BenefitIcon,
   type DepartureStatus,
+  type UpcomingDeparture,
 } from "@/data/home";
 
 interface PopularRouteCard {
@@ -428,7 +428,48 @@ const STATUS_TEXT_CLASSES: Record<DepartureStatus, string> = {
   embarcando: "text-primary",
 };
 
+// El "Estado" (a-tiempo/embarcando) no tiene ningun dato real detras - el
+// backend no tiene tracking en vivo de buses - se deja mockeado a proposito,
+// ciclando sobre esta lista, mientras el resto de la fila (ruta, empresa,
+// hora de salida) ya sale de GET /trips + GET /routes.
+const MOCK_STATUSES: DepartureStatus[] = ["a-tiempo", "a-tiempo", "embarcando", "a-tiempo"];
+
 export const UpcomingDepartures = () => {
+  const [departures, setDepartures] = useState<UpcomingDeparture[] | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    Promise.all([fetchTrips(), fetchRoutes()]).then(([trips, routes]) => {
+      if (cancelled) return;
+
+      const companyNameByCompanyId = new Map<string, string>();
+      for (const route of routes) {
+        companyNameByCompanyId.set(route.companyId, route.company.name);
+      }
+
+      const now = Date.now();
+      const upcoming = trips
+        .filter((trip) => new Date(trip.departureDate).getTime() > now)
+        .sort((a, b) => new Date(a.departureDate).getTime() - new Date(b.departureDate).getTime())
+        .slice(0, 4)
+        .map((trip, index) => ({
+          id: trip.id,
+          route: `${trip.origin} → ${trip.destination}`,
+          company: companyNameByCompanyId.get(trip.companyId) ?? "—",
+          departureDateLabel: formatDateLabel(toLocalDateISO(new Date(trip.departureDate))),
+          departureTime: formatTime(new Date(trip.departureDate)),
+          status: MOCK_STATUSES[index % MOCK_STATUSES.length],
+        }));
+
+      setDepartures(upcoming);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <section id="proximas-salidas" className="bustix-dark bg-background px-4 py-16 sm:px-8">
       <div className="mx-auto max-w-6xl">
@@ -445,29 +486,47 @@ export const UpcomingDepartures = () => {
               <tr className="font-mono-label text-xs uppercase text-muted-foreground">
                 <th className="px-5 py-3 font-normal">Ruta</th>
                 <th className="px-5 py-3 font-normal">Empresa</th>
+                <th className="px-5 py-3 font-normal">Fecha</th>
                 <th className="px-5 py-3 font-normal">Salida</th>
                 <th className="px-5 py-3 font-normal">Estado</th>
               </tr>
             </thead>
             <tbody>
-              {upcomingDepartures.map((departure) => (
-                <tr key={departure.id} className="border-t border-border text-foreground">
-                  <td className="font-mono-label px-5 py-4 font-medium">{departure.route}</td>
-                  <td className="font-mono-label px-5 py-4 text-muted-foreground">{departure.company}</td>
-                  <td
-                    className={`font-mono-label px-5 py-4 font-bold ${STATUS_TEXT_CLASSES[departure.status]}`}
-                  >
-                    {departure.departureTime}
-                  </td>
-                  <td className="px-5 py-4">
-                    <span
-                      className={`font-mono-label inline-flex items-center rounded-full px-3 py-1 text-xs font-bold ${STATUS_CLASSES[departure.status]}`}
-                    >
-                      {STATUS_LABEL[departure.status]}
-                    </span>
+              {departures === null ? (
+                <tr>
+                  <td className="px-5 py-4 text-muted-foreground" colSpan={5}>
+                    Cargando…
                   </td>
                 </tr>
-              ))}
+              ) : departures.length === 0 ? (
+                <tr>
+                  <td className="px-5 py-4 text-muted-foreground" colSpan={5}>
+                    No hay viajes programados por ahora.
+                  </td>
+                </tr>
+              ) : (
+                departures.map((departure) => (
+                  <tr key={departure.id} className="border-t border-border text-foreground">
+                    <td className="font-mono-label px-5 py-4 font-medium">{departure.route}</td>
+                    <td className="font-mono-label px-5 py-4 text-muted-foreground">{departure.company}</td>
+                    <td className="font-mono-label px-5 py-4 text-muted-foreground">
+                      {departure.departureDateLabel}
+                    </td>
+                    <td
+                      className={`font-mono-label px-5 py-4 font-bold ${STATUS_TEXT_CLASSES[departure.status]}`}
+                    >
+                      {departure.departureTime}
+                    </td>
+                    <td className="px-5 py-4">
+                      <span
+                        className={`font-mono-label inline-flex items-center rounded-full px-3 py-1 text-xs font-bold ${STATUS_CLASSES[departure.status]}`}
+                      >
+                        {STATUS_LABEL[departure.status]}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -551,25 +610,61 @@ export const Benefits = () => {
 
 // ---------- Empresas aliadas ----------
 
+interface PartnerCompany {
+  id: string;
+  name: string;
+}
+
 export const PartnerCompanies = () => {
+  const [companies, setCompanies] = useState<PartnerCompany[] | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    fetchRoutes().then((routes) => {
+      if (cancelled) return;
+
+      const companyById = new Map<string, string>();
+      for (const route of routes) {
+        companyById.set(route.company.id, route.company.name);
+      }
+
+      setCompanies(
+        Array.from(companyById, ([id, name]) => ({ id, name }))
+          .sort((a, b) => a.name.localeCompare(b.name))
+          .slice(0, 5)
+      );
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <section id="empresas" className="bg-background px-4 py-16 sm:px-8">
       <div className="mx-auto max-w-6xl">
         <h2 className="font-display text-2xl text-foreground sm:text-3xl">Empresas aliadas</h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          Operadores verificados que venden sus rutas en BusTix.
+          Operadores que ya venden sus rutas en BusTix.
         </p>
 
-        <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-          {partners.map((partner) => (
-            <div
-              key={partner.id}
-              className="font-display flex h-16 items-center justify-center rounded-lg border border-border bg-card px-4 text-center text-sm text-muted-foreground"
-            >
-              {partner.name}
-            </div>
-          ))}
-        </div>
+        {companies === null ? (
+          <p className="mt-8 text-sm text-muted-foreground">Cargando…</p>
+        ) : companies.length === 0 ? (
+          <p className="mt-8 text-sm text-muted-foreground">Todavía no hay empresas con rutas publicadas.</p>
+        ) : (
+          <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+            {companies.map((company) => (
+              <div
+                key={company.id}
+                className="font-display flex h-16 items-center justify-center rounded-lg border border-border bg-card px-4 text-center text-sm text-muted-foreground"
+              >
+                {company.name}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );

@@ -12,7 +12,7 @@ interface Kpi {
 
 const buildKpis = (tickets: ApiTicket[]): Kpi[] => {
   if (tickets.length === 0) {
-    return [{ id: "sin-viajes", label: "Viajes realizados", value: "0", helper: "Aún no has comprado tiquetes" }];
+    return [{ id: "sin-tiquetes", label: "Tiquetes comprados", value: "0", helper: "Aún no has comprado tiquetes" }];
   }
 
   const totalSpent = tickets.reduce((sum, ticket) => sum + Number(ticket.price), 0);
@@ -25,7 +25,7 @@ const buildKpis = (tickets: ApiTicket[]): Kpi[] => {
   const favoriteRoute = [...routeCounts.entries()].sort((a, b) => b[1] - a[1])[0];
 
   return [
-    { id: "viajes-realizados", label: "Viajes realizados", value: String(tickets.length), helper: "Total de tiquetes comprados" },
+    { id: "tiquetes-comprados", label: "Tiquetes comprados", value: String(tickets.length), helper: "Total de tiquetes comprados" },
     { id: "total-gastado", label: "Total gastado", value: formatCOP(totalSpent), helper: "Suma de todas tus compras" },
     { id: "ruta-favorita", label: "Ruta favorita", value: favoriteRoute[0], helper: `${favoriteRoute[1]} viaje${favoriteRoute[1] > 1 ? "s" : ""}` },
   ];

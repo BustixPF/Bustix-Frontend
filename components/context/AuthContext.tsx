@@ -11,6 +11,8 @@ export interface AuthUser {
   dni?: number;
   phone?: number;
   address?: string | null;
+  companyId?: string | null;
+  profilePicture?: string | null;
 }
 
 interface AuthContextValue {
