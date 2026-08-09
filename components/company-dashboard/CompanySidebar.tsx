@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { companyProfile } from "@/data/companyDashboard";
 import MobileDrawer from "@/components/MobileDrawer";
+import LogoutConfirmModal from "@/components/LogoutConfirmModal";
 
 const HamburgerIcon = () => (
   <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -30,6 +31,7 @@ const CompanySidebar = ({ company }: CompanySidebarProps) => {
   const pathname = usePathname();
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
+  const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
 
   const closeMenu = () => setIsOpen(false);
 
@@ -86,7 +88,7 @@ const CompanySidebar = ({ company }: CompanySidebarProps) => {
         </div>
         <button
           type="button"
-          onClick={handleLogout}
+          onClick={() => setIsLogoutConfirmOpen(true)}
           className="mt-4 text-xs text-muted-foreground transition-colors hover:text-foreground"
         >
           Cerrar sesión
@@ -113,6 +115,16 @@ const CompanySidebar = ({ company }: CompanySidebarProps) => {
       <MobileDrawer isOpen={isOpen} onClose={closeMenu}>
         {content}
       </MobileDrawer>
+
+      {isLogoutConfirmOpen && (
+        <LogoutConfirmModal
+          onConfirm={() => {
+            setIsLogoutConfirmOpen(false);
+            handleLogout();
+          }}
+          onClose={() => setIsLogoutConfirmOpen(false)}
+        />
+      )}
     </>
   );
 };
