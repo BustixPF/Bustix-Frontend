@@ -3,6 +3,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import MobileDrawer from "@/components/MobileDrawer";
+import LogoutConfirmModal from "@/components/LogoutConfirmModal";
 import { useAuth } from "@/components/context/AuthContext";
 import { getInitials } from "@/lib/user";
 
@@ -21,6 +22,7 @@ const SuperAdminSidebar = () => {
   const router = useRouter();
   const { user, logout } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
+  const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
 
   const closeMenu = () => setIsOpen(false);
 
@@ -75,7 +77,7 @@ const SuperAdminSidebar = () => {
         </div>
         <button
           type="button"
-          onClick={handleLogout}
+          onClick={() => setIsLogoutConfirmOpen(true)}
           className="mt-4 text-xs text-muted-foreground transition-colors hover:text-foreground"
         >
           Cerrar sesión
@@ -102,6 +104,16 @@ const SuperAdminSidebar = () => {
       <MobileDrawer isOpen={isOpen} onClose={closeMenu}>
         {content}
       </MobileDrawer>
+
+      {isLogoutConfirmOpen && (
+        <LogoutConfirmModal
+          onConfirm={() => {
+            setIsLogoutConfirmOpen(false);
+            handleLogout();
+          }}
+          onClose={() => setIsLogoutConfirmOpen(false)}
+        />
+      )}
     </>
   );
 };

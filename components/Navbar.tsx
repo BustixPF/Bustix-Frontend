@@ -1,10 +1,12 @@
 "use client";
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
 import { useAuth } from '@/components/context/AuthContext'
-import { getDashboardPathForRole } from '@/lib/api'
+import { getDashboardPathForRole, fetchMyTickets } from '@/lib/api'
 import MobileDrawer from '@/components/MobileDrawer'
+import LogoutConfirmModal from '@/components/LogoutConfirmModal'
+import NotificationsDropdown from '@/components/NotificationsDropdown'
 
 const BellIcon = () => (
   <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -71,6 +73,63 @@ const Navbar = () => {
   const router = useRouter()
   const pathname = usePathname()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false)
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
+  const notificationsRef = useRef<HTMLDivElement>(null)
+  const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false)
+  const NOTIFICATIONS_LAST_SEEN_KEY = 'bustix_notifications_last_seen'
+
+  useEffect(() => {
+    if (!user) return
+    let cancelled = false
+    fetchMyTickets().then((tickets) => {
+      if (cancelled) return
+      const latest = tickets
+        .map((ticket) => ticket.purchaseDate)
+        .sort()
+        .at(-1)
+      if (!latest) {
+        setHasUnreadNotifications(false)
+        return
+      }
+      const lastSeen = window.localStorage.getItem(NOTIFICATIONS_LAST_SEEN_KEY)
+      setHasUnreadNotifications(!lastSeen || latest > lastSeen)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [user])
+
+  const handleToggleNotifications = () => {
+    setIsNotificationsOpen((prev) => {
+      const next = !prev
+      if (next) {
+        fetchMyTickets().then((tickets) => {
+          const latest = tickets
+            .map((ticket) => ticket.purchaseDate)
+            .sort()
+            .at(-1)
+          if (latest) {
+            window.localStorage.setItem(NOTIFICATIONS_LAST_SEEN_KEY, latest)
+          }
+        })
+        setHasUnreadNotifications(false)
+      }
+      return next
+    })
+  }
+
+
+  useEffect(() => {
+    if (!isNotificationsOpen) return
+    const handleClickOutside = (event: MouseEvent) => {
+      if (notificationsRef.current && !notificationsRef.current.contains(event.target as Node)) {
+        setIsNotificationsOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [isNotificationsOpen])
 
   const closeMenu = () => setIsMenuOpen(false)
 
@@ -99,14 +158,26 @@ const Navbar = () => {
 
       {user ? (
         <>
-          <button
-            type="button"
-            aria-label="Notificaciones"
-            className="relative flex h-9 w-9 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:border-primary hover:text-foreground"
-          >
-            <BellIcon />
-            <span className="absolute right-2 top-1.5 h-2 w-2 rounded-full bg-accent" />
-          </button>
+          <div ref={notificationsRef} className="relative">
+            <button
+              type="button"
+              aria-label="Notificaciones"
+              aria-expanded={isNotificationsOpen}
+              onClick={handleToggleNotifications}
+              className="relative flex h-9 w-9 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:border-primary hover:text-foreground"
+            >
+              <BellIcon />
+              {user && hasUnreadNotifications && (
+                <span className="absolute right-2 top-1.5 h-2 w-2 rounded-full bg-accent" />
+              )}
+            </button>
+
+            {isNotificationsOpen && (
+              <div className="absolute right-0 top-full z-50 mt-2">
+                <NotificationsDropdown />
+              </div>
+            )}
+          </div>
 
           <Link
             href={getDashboardPathForRole(user.role, user.companyId) ?? '/'}
@@ -117,7 +188,7 @@ const Navbar = () => {
           </Link>
           <button
             type="button"
-            onClick={handleLogout}
+            onClick={() => setIsLogoutConfirmOpen(true)}
             className="rounded-full bg-primary px-5 py-2 text-sm font-bold text-primary-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
           >
             Cerrar sesión
@@ -164,8 +235,18 @@ const Navbar = () => {
       <MobileDrawer isOpen={isMenuOpen} onClose={closeMenu}>
         <ul className="flex flex-col gap-3">{links}</ul>
       </MobileDrawer>
+
+      {isLogoutConfirmOpen && (
+        <LogoutConfirmModal
+          onConfirm={() => {
+            setIsLogoutConfirmOpen(false)
+            handleLogout()
+          }}
+          onClose={() => setIsLogoutConfirmOpen(false)}
+        />
+      )}
     </nav>
   )
 }
 
-export default Navbar
+export default Navbar;
