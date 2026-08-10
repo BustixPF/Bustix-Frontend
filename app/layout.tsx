@@ -5,6 +5,7 @@ import { workSans, jetbrainsMono, bigShouldersDisplay } from "./fonts";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { AuthProvider } from "@/components/context/AuthContext";
+import ChatWidget from "@/components/chatbot/ChatWidget";
 
 export const metadata: Metadata = {
   title: "Bustix",
@@ -26,6 +27,7 @@ export default function RootLayout({
           <Navbar />
           {children}
           <Footer />
+          <ChatWidget />
           <Toaster
             position="top-right"
             closeButton

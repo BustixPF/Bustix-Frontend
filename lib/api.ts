@@ -71,6 +71,10 @@ export const logoutRequest = async (): Promise<void> => {
   }
 };
 
+export const deleteAccount = async (userId: string): Promise<void> => {
+  await api.delete(`/users/${userId}`);
+};
+
 export interface CompanyDocument {
   id: string;
   url: string;
@@ -115,9 +119,35 @@ export const fetchCompany = async (companyId: string): Promise<Company | null> =
   }
 };
 
+// GET /companies es publico y ahora solo devuelve empresas aprobadas (antes
+// devolvia todas, incluyendo pendientes/rechazadas - eso se cerro a proposito
+// para no filtrar solicitudes de empresa a cualquier visitante anonimo).
 export const fetchCompanies = async (): Promise<Company[]> => {
   try {
     const { data } = await api.get("/companies");
+    return data;
+  } catch {
+    return [];
+  }
+};
+
+// Solo trae companias en estado pending (con status/rejectionReason, sin
+// documentos) - requiere superAdmin o Admin.
+export const fetchPendingCompanies = async (): Promise<Company[]> => {
+  try {
+    const { data } = await api.get("/companies/pending");
+    return data;
+  } catch {
+    return [];
+  }
+};
+
+// Trae TODAS las companias con sus documentos (sin status/rejectionReason) -
+// requiere superAdmin. Se combina con fetchPendingCompanies() para armar la
+// lista de solicitudes pendientes con sus documentos adjuntos.
+export const fetchCompaniesWithDocuments = async (): Promise<Company[]> => {
+  try {
+    const { data } = await api.get("/dashboard/superadmin/companies");
     return data;
   } catch {
     return [];
@@ -183,6 +213,16 @@ export const uploadProfilePicture = async (
   return data;
 };
 
+export type TripStatus =
+  | "A_TIEMPO"
+  | "EMBARCANDO"
+  | "SALIO"
+  | "RETRASADO"
+  | "CANCELADO"
+  | "LLEGÓ"
+  | "EN_RUTA"
+  | "REPROGRAMADO";
+
 export interface ApiTrip {
   id: string;
   companyId: string;
@@ -191,6 +231,7 @@ export interface ApiTrip {
   departureDate: string;
   price: string;
   totalSeats: number;
+  status: TripStatus;
 }
 
 export interface ApiSeat {
@@ -433,4 +474,19 @@ export const respondScheduleRequest = async (
     ...(message ? { message } : {}),
   });
   return data;
+};
+
+export interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
+// El backend no guarda historial - el cliente manda el historial previo en
+// cada request para que el asistente tenga contexto de la conversación.
+export const sendChatMessage = async (
+  message: string,
+  history: ChatMessage[]
+): Promise<string> => {
+  const { data } = await api.post("/chatbot/message", { message, history });
+  return data.reply;
 };

@@ -1,4 +1,4 @@
-export type DepartureStatus = "a-tiempo" | "embarcando";
+import type { TripStatus } from "@/lib/api";
 
 export interface UpcomingDeparture {
   id: string;
@@ -6,7 +6,7 @@ export interface UpcomingDeparture {
   company: string;
   departureDateLabel: string;
   departureTime: string;
-  status: DepartureStatus;
+  status: TripStatus;
 }
 
 export type BenefitIcon = "compare" | "payment" | "seats" | "ticket" | "support";

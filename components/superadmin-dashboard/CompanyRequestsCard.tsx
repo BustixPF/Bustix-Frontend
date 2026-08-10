@@ -2,7 +2,8 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
-  fetchCompanies,
+  fetchPendingCompanies,
+  fetchCompaniesWithDocuments,
   approveCompany,
   rejectCompany,
   getApiErrorMessage,
@@ -26,10 +27,23 @@ const CompanyRequestsCard = () => {
     let cancelled = false;
 
     (async () => {
-      const all = await fetchCompanies();
-      if (!cancelled) {
-        setCompanies(all.filter((company) => company.status === "pending"));
-      }
+      // /companies/pending trae status pero no documentos; el endpoint de
+      // superAdmin trae documentos pero no status - se combinan por id.
+      const [pending, withDocuments] = await Promise.all([
+        fetchPendingCompanies(),
+        fetchCompaniesWithDocuments(),
+      ]);
+      if (cancelled) return;
+
+      const documentsById = new Map(
+        withDocuments.map((company) => [company.id, company.documents ?? []])
+      );
+      setCompanies(
+        pending.map((company) => ({
+          ...company,
+          documents: documentsById.get(company.id) ?? [],
+        }))
+      );
     })();
 
     return () => {

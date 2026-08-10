@@ -12,7 +12,12 @@ interface Kpi {
 
 const buildKpis = (tickets: ApiTicket[]): Kpi[] => {
   if (tickets.length === 0) {
-    return [{ id: "sin-tiquetes", label: "Tiquetes comprados", value: "0", helper: "Aún no has comprado tiquetes" }];
+    const helper = "Aún no has comprado tiquetes";
+    return [
+      { id: "tiquetes-comprados", label: "Tiquetes comprados", value: "0", helper },
+      { id: "total-gastado", label: "Total gastado", value: "—", helper },
+      { id: "ruta-favorita", label: "Ruta favorita", value: "—", helper },
+    ];
   }
 
   const totalSpent = tickets.reduce((sum, ticket) => sum + Number(ticket.price), 0);

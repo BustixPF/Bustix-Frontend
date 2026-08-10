@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { ComponentType, SVGProps } from "react";
 import Link from "next/link";
 import SearchForm from "@/components/forms/home/SearchForm";
-import { fetchRoutes, fetchTrips, type ApiRoute, type ApiTrip } from "@/lib/api";
+import { fetchRoutes, fetchTrips, type ApiRoute, type ApiTrip, type TripStatus } from "@/lib/api";
 import { formatDateLabel, formatTime, toLocalDateISO } from "@/data/viajes";
 
 import {
@@ -11,7 +11,6 @@ import {
   howItWorksSteps,
   formatCOP,
   type BenefitIcon,
-  type DepartureStatus,
   type UpcomingDeparture,
 } from "@/data/home";
 
@@ -413,26 +412,38 @@ export const PopularRoutes = () => {
 
 // ---------- Próximas salidas ----------
 
-const STATUS_LABEL: Record<DepartureStatus, string> = {
-  "a-tiempo": "A tiempo",
-  embarcando: "Embarcando",
+const STATUS_LABEL: Record<TripStatus, string> = {
+  A_TIEMPO: "A tiempo",
+  EMBARCANDO: "Embarcando",
+  EN_RUTA: "En ruta",
+  SALIO: "Salió",
+  LLEGÓ: "Llegó",
+  RETRASADO: "Retrasado",
+  CANCELADO: "Cancelado",
+  REPROGRAMADO: "Reprogramado",
 };
 
-const STATUS_CLASSES: Record<DepartureStatus, string> = {
-  "a-tiempo": "bg-success/15 text-success",
-  embarcando: "bg-primary/15 text-primary",
+const STATUS_CLASSES: Record<TripStatus, string> = {
+  A_TIEMPO: "bg-success/15 text-success",
+  EMBARCANDO: "bg-primary/15 text-primary",
+  EN_RUTA: "bg-primary/15 text-primary",
+  SALIO: "bg-muted text-muted-foreground",
+  LLEGÓ: "bg-success/15 text-success",
+  RETRASADO: "bg-destructive/15 text-destructive",
+  CANCELADO: "bg-destructive/15 text-destructive",
+  REPROGRAMADO: "bg-secondary/15 text-secondary",
 };
 
-const STATUS_TEXT_CLASSES: Record<DepartureStatus, string> = {
-  "a-tiempo": "text-success",
-  embarcando: "text-primary",
+const STATUS_TEXT_CLASSES: Record<TripStatus, string> = {
+  A_TIEMPO: "text-success",
+  EMBARCANDO: "text-primary",
+  EN_RUTA: "text-primary",
+  SALIO: "text-muted-foreground",
+  LLEGÓ: "text-success",
+  RETRASADO: "text-destructive",
+  CANCELADO: "text-destructive",
+  REPROGRAMADO: "text-secondary",
 };
-
-// El "Estado" (a-tiempo/embarcando) no tiene ningun dato real detras - el
-// backend no tiene tracking en vivo de buses - se deja mockeado a proposito,
-// ciclando sobre esta lista, mientras el resto de la fila (ruta, empresa,
-// hora de salida) ya sale de GET /trips + GET /routes.
-const MOCK_STATUSES: DepartureStatus[] = ["a-tiempo", "a-tiempo", "embarcando", "a-tiempo"];
 
 export const UpcomingDepartures = () => {
   const [departures, setDepartures] = useState<UpcomingDeparture[] | null>(null);
@@ -453,13 +464,13 @@ export const UpcomingDepartures = () => {
         .filter((trip) => new Date(trip.departureDate).getTime() > now)
         .sort((a, b) => new Date(a.departureDate).getTime() - new Date(b.departureDate).getTime())
         .slice(0, 4)
-        .map((trip, index) => ({
+        .map((trip) => ({
           id: trip.id,
           route: `${trip.origin} → ${trip.destination}`,
           company: companyNameByCompanyId.get(trip.companyId) ?? "—",
           departureDateLabel: formatDateLabel(toLocalDateISO(new Date(trip.departureDate))),
           departureTime: formatTime(new Date(trip.departureDate)),
-          status: MOCK_STATUSES[index % MOCK_STATUSES.length],
+          status: trip.status,
         }));
 
       setDepartures(upcoming);

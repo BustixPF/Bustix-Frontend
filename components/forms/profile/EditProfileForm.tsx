@@ -4,20 +4,23 @@ import { useRouter } from "next/navigation";
 import { useFormik } from "formik";
 import { toast } from "sonner";
 import EyeIcon from "@/components/forms/register/EyeIcon";
-import { api, getApiErrorMessage, uploadProfilePicture } from "@/lib/api";
+import { api, getApiErrorMessage, uploadProfilePicture, deleteAccount } from "@/lib/api";
 import { useAuth } from "@/components/context/AuthContext";
 import { getInitials } from "@/lib/user";
 import {
   buildEditProfileInitialValues,
   editProfileValidationSchema,
 } from "@/components/forms/profile/EditProfileSchema";
+import DeleteAccountModal from "@/components/forms/profile/DeleteAccountModal";
 
 const EditProfileForm = () => {
-  const { user, login } = useAuth();
+  const { user, login, logout } = useAuth();
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isUploadingPicture, setIsUploadingPicture] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handlePictureSelected = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -36,6 +39,22 @@ const EditProfileForm = () => {
       });
     } finally {
       setIsUploadingPicture(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!user) return;
+    setIsDeletingAccount(true);
+    try {
+      await deleteAccount(user.id);
+      toast.success("Tu cuenta fue eliminada");
+      logout();
+      router.push("/");
+    } catch (error) {
+      toast.error("No se pudo eliminar la cuenta", {
+        description: getApiErrorMessage(error, "Intenta de nuevo en unos minutos"),
+      });
+      setIsDeletingAccount(false);
     }
   };
 
@@ -264,6 +283,28 @@ const EditProfileForm = () => {
       >
         {formik.isSubmitting ? "Guardando..." : "Guardar cambios"}
       </button>
+
+      <div className="mt-8 border-t border-border pt-6">
+        <p className="text-sm font-bold text-card-foreground">Eliminar cuenta</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Esta acción es permanente y no se puede deshacer.
+        </p>
+        <button
+          type="button"
+          onClick={() => setIsDeleteModalOpen(true)}
+          className="mt-4 rounded-full border border-destructive px-5 py-2.5 text-sm font-semibold text-destructive transition-colors hover:bg-destructive hover:text-destructive-foreground"
+        >
+          Eliminar mi cuenta
+        </button>
+      </div>
+
+      {isDeleteModalOpen && (
+        <DeleteAccountModal
+          isSubmitting={isDeletingAccount}
+          onConfirm={handleDeleteAccount}
+          onClose={() => setIsDeleteModalOpen(false)}
+        />
+      )}
     </form>
   );
 };
