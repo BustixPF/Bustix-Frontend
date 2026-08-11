@@ -357,11 +357,20 @@ export interface ApiSale {
   company: { id: string; name: string } | null;
 }
 
-// El backend todavía no filtra este historial por empresa (devuelve las
-// ventas de todas las empresas) — hay que filtrar por companyId en el cliente.
+// El backend ya filtra este historial por la empresa del Admin autenticado.
 export const fetchSalesHistory = async (): Promise<ApiSale[]> => {
   try {
     const { data } = await api.get("/dashboard/admin/sales-history");
+    return data;
+  } catch {
+    return [];
+  }
+};
+
+// Ventas de TODA la plataforma, sin filtrar por empresa - requiere superAdmin.
+export const fetchGlobalSales = async (): Promise<ApiSale[]> => {
+  try {
+    const { data } = await api.get("/dashboard/superadmin/sales");
     return data;
   } catch {
     return [];
@@ -489,4 +498,95 @@ export const sendChatMessage = async (
 ): Promise<string> => {
   const { data } = await api.post("/chatbot/message", { message, history });
   return data.reply;
+};
+
+export type UserRole = "user" | "admin" | "superAdmin";
+
+export interface AdminUser {
+  id: string;
+  name: string;
+  email: string;
+  dni?: number | string | null;
+  phone?: number | string | null;
+  address?: string | null;
+  role: UserRole;
+  companyId?: string | null;
+}
+
+// Requiere superAdmin. El backend pagina con page/limit, sin busqueda server-side.
+export const fetchUsers = async (page = 1, limit = 15): Promise<AdminUser[]> => {
+  try {
+    const { data } = await api.get(`/users?page=${page}&limit=${limit}`);
+    return data;
+  } catch {
+    return [];
+  }
+};
+
+export const changeUserRole = async (userId: string, role: UserRole): Promise<AdminUser> => {
+  const { data } = await api.patch(`/dashboard/superadmin/users/${userId}/role`, { role });
+  return data;
+};
+
+export interface DashboardSummary {
+  companyCount: number;
+  ticketCount: number;
+  pendingCompanyRequests: number;
+  pendingRouteRequests: number;
+  pendingScheduleRequests: number;
+}
+
+export const fetchDashboardSummary = async (): Promise<DashboardSummary | null> => {
+  try {
+    const { data } = await api.get("/dashboard/summary");
+    return data;
+  } catch {
+    return null;
+  }
+};
+
+export interface ApiPaymentDetail {
+  id: string;
+  amount: number;
+  currency: string;
+  status: "pending" | "paid" | "failed" | "canceled" | "refunded";
+  description?: string | null;
+  tripId?: string | null;
+  createdAt: string;
+  user?: { id: string; name: string; email: string } | null;
+}
+
+export const fetchPaymentById = async (paymentId: string): Promise<ApiPaymentDetail | null> => {
+  try {
+    const { data } = await api.get(`/payments/${paymentId}`);
+    return data;
+  } catch {
+    return null;
+  }
+};
+
+export const refundPayment = async (paymentId: string): Promise<ApiPaymentDetail> => {
+  const { data } = await api.post(`/payments/${paymentId}/refund`);
+  return data;
+};
+
+export interface SuperAdminPendingSummary {
+  companies: number;
+  routes: number;
+  schedules: number;
+}
+
+// No existe un endpoint de notificaciones para superAdmin - se arma
+// contando las 3 listas de solicitudes pendientes que ya usa el dashboard.
+export const fetchSuperAdminPendingSummary = async (): Promise<SuperAdminPendingSummary> => {
+  const [companies, routes, schedules] = await Promise.all([
+    fetchPendingCompanies(),
+    fetchRouteRequests(),
+    fetchScheduleRequests(),
+  ]);
+  return {
+    companies: companies.length,
+    routes: routes.length,
+    schedules: schedules.length,
+  };
 };

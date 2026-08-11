@@ -1,10 +1,11 @@
 "use client";
 import { useEffect, useState } from "react";
-import { fetchAdminMetrics, type AdminMetrics } from "@/lib/api";
+import { fetchAdminMetrics, fetchDashboardSummary, type AdminMetrics } from "@/lib/api";
 import { formatCOP } from "@/data/home";
 
 const MetricsOverview = () => {
   const [metrics, setMetrics] = useState<AdminMetrics | null>(null);
+  const [companyCount, setCompanyCount] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -12,9 +13,13 @@ const MetricsOverview = () => {
 
     (async () => {
       setIsLoading(true);
-      const result = await fetchAdminMetrics();
+      const [metricsResult, summary] = await Promise.all([
+        fetchAdminMetrics(),
+        fetchDashboardSummary(),
+      ]);
       if (!cancelled) {
-        setMetrics(result);
+        setMetrics(metricsResult);
+        setCompanyCount(summary?.companyCount ?? null);
         setIsLoading(false);
       }
     })();
@@ -26,8 +31,8 @@ const MetricsOverview = () => {
 
   if (isLoading) {
     return (
-      <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-        {Array.from({ length: 5 }).map((_, i) => (
+      <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        {Array.from({ length: 6 }).map((_, i) => (
           <div key={i} className="h-[104px] animate-pulse rounded-2xl border border-border bg-card" />
         ))}
       </div>
@@ -52,11 +57,15 @@ const MetricsOverview = () => {
     { id: "tickets", label: "Tiquetes vendidos", value: String(overview.totalTicketsSold) },
     { id: "empresas", label: "Empresas activas", value: String(overview.activeCompanies) },
     { id: "usuarios", label: "Usuarios registrados", value: String(overview.totalUsers) },
+    ...(companyCount !== null
+      ? [{ id: "empresas-registradas", label: "Empresas registradas", value: String(companyCount) }]
+      : []),
   ];
 
   return (
     <>
-      <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+      <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        {/* xl:grid-cols-3 en vez de 5/6 - con 5 o 6 cards, 3 columnas se ve mejor balanceado */}
         {cards.map((card) => (
           <div key={card.id} className="rounded-2xl border border-border bg-card p-4 sm:p-6">
             <p className="font-mono-label text-[10.5px] uppercase text-muted-foreground">{card.label}</p>

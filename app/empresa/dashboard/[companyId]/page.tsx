@@ -60,22 +60,32 @@ function CompanyDashboardContent() {
 
   return (
     <div className="flex min-h-screen bg-background">
-      <CompanySidebar company={{ name: company.name, initials: getInitials(company.name) }} />
+      <CompanySidebar
+        companyId={companyId}
+        company={{
+          name: company.name,
+          initials: getInitials(company.name),
+          status: company.status,
+          rejectionReason: company.rejectionReason,
+        }}
+      />
 
       <main className="min-w-0 flex-1 px-4 py-6 sm:px-6 sm:py-8 md:px-10 md:py-10">
         <CompanyTopBar company={{ name: company.name }} />
         <CompanyKpiRow companyId={companyId} />
 
-        <div className="mt-6">
+        <div id="horarios" className="mt-6 scroll-mt-6">
           <UpcomingDeparturesBoard companyId={companyId} />
         </div>
 
-        <div className="mt-6">
+        <div id="rutas" className="mt-6 scroll-mt-6">
           <CompanyRoutesCard companyId={companyId} />
         </div>
 
         <div className="mt-6 grid min-w-0 gap-6 xl:grid-cols-[1fr_380px]">
-          <RecentBookingsCard companyId={companyId} />
+          <div id="reservas" className="min-w-0 scroll-mt-6">
+            <RecentBookingsCard companyId={companyId} />
+          </div>
           <QuickActionsCard companyId={companyId} />
         </div>
       </main>

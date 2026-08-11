@@ -3,10 +3,11 @@ import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
 import { useAuth } from '@/components/context/AuthContext'
-import { getDashboardPathForRole, fetchMyTickets } from '@/lib/api'
+import { getDashboardPathForRole, fetchMyTickets, fetchSuperAdminPendingSummary } from '@/lib/api'
 import MobileDrawer from '@/components/MobileDrawer'
 import LogoutConfirmModal from '@/components/LogoutConfirmModal'
 import NotificationsDropdown from '@/components/NotificationsDropdown'
+import SuperAdminNotificationsDropdown from '@/components/SuperAdminNotificationsDropdown'
 
 const BellIcon = () => (
   <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -79,9 +80,24 @@ const Navbar = () => {
   const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false)
   const NOTIFICATIONS_LAST_SEEN_KEY = 'bustix_notifications_last_seen'
 
+  const isSuperAdmin = user?.role === 'superAdmin'
+
   useEffect(() => {
     if (!user) return
     let cancelled = false
+
+    // El superAdmin no compra tiquetes - para el, "no leido" es que haya
+    // solicitudes pendientes, no una compra nueva.
+    if (isSuperAdmin) {
+      fetchSuperAdminPendingSummary().then((summary) => {
+        if (cancelled) return
+        setHasUnreadNotifications(summary.companies + summary.routes + summary.schedules > 0)
+      })
+      return () => {
+        cancelled = true
+      }
+    }
+
     fetchMyTickets().then((tickets) => {
       if (cancelled) return
       const latest = tickets
@@ -98,12 +114,14 @@ const Navbar = () => {
     return () => {
       cancelled = true
     }
-  }, [user])
+  }, [user, isSuperAdmin])
 
   const handleToggleNotifications = () => {
     setIsNotificationsOpen((prev) => {
       const next = !prev
-      if (next) {
+      // El indicador del superAdmin refleja si sigue habiendo pendientes,
+      // no se "marca como leido" al abrir el panel.
+      if (next && !isSuperAdmin) {
         fetchMyTickets().then((tickets) => {
           const latest = tickets
             .map((ticket) => ticket.purchaseDate)
@@ -174,7 +192,7 @@ const Navbar = () => {
 
             {isNotificationsOpen && (
               <div className="absolute right-0 top-full z-50 mt-2">
-                <NotificationsDropdown />
+                {isSuperAdmin ? <SuperAdminNotificationsDropdown /> : <NotificationsDropdown />}
               </div>
             )}
           </div>

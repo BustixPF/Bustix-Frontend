@@ -6,6 +6,9 @@ import MetricsOverview from "@/components/superadmin-dashboard/MetricsOverview";
 import CompanyRequestsCard from "@/components/superadmin-dashboard/CompanyRequestsCard";
 import RouteRequestsCard from "@/components/superadmin-dashboard/RouteRequestsCard";
 import ScheduleRequestsCard from "@/components/superadmin-dashboard/ScheduleRequestsCard";
+import UsersManagementCard from "@/components/superadmin-dashboard/UsersManagementCard";
+import GlobalSalesCard from "@/components/superadmin-dashboard/GlobalSalesCard";
+import RefundPaymentCard from "@/components/superadmin-dashboard/RefundPaymentCard";
 
 function SuperAdminDashboardContent() {
   return (
@@ -26,6 +29,15 @@ function SuperAdminDashboardContent() {
 
         <div className="mt-6">
           <ScheduleRequestsCard />
+        </div>
+
+        <div className="mt-6">
+          <UsersManagementCard />
+        </div>
+
+        <div className="mt-6 grid min-w-0 gap-6 xl:grid-cols-[1fr_380px]">
+          <GlobalSalesCard />
+          <RefundPaymentCard />
         </div>
       </main>
     </div>

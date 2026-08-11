@@ -1,11 +1,11 @@
 "use client";
-import { useState } from "react";
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import MobileDrawer from "@/components/MobileDrawer";
 import LogoutConfirmModal from "@/components/LogoutConfirmModal";
 import { useAuth } from "@/components/context/AuthContext";
 import { getInitials } from "@/lib/user";
+import { fetchDashboardSummary, type DashboardSummary } from "@/lib/api";
 
 const HamburgerIcon = () => (
   <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -15,14 +15,25 @@ const HamburgerIcon = () => (
   </svg>
 );
 
-const NAV_ITEMS = [{ label: "Panel", href: "/superadmin/dashboard" }];
-
 const SuperAdminSidebar = () => {
-  const pathname = usePathname();
   const router = useRouter();
   const { user, logout } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
+  const [summary, setSummary] = useState<DashboardSummary | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      const result = await fetchDashboardSummary();
+      if (!cancelled) setSummary(result);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const closeMenu = () => setIsOpen(false);
 
@@ -34,35 +45,23 @@ const SuperAdminSidebar = () => {
 
   const content = (
     <>
-      <nav className="flex flex-col gap-1">
-        {NAV_ITEMS.map((item) => {
-          const isActive = item.href === pathname;
-          return (
-            <Link
-              key={item.label}
-              href={item.href}
-              onClick={closeMenu}
-              className={`flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm transition-colors ${
-                isActive
-                  ? "border-l-4 border-primary bg-card font-bold text-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <span
-                className={`h-1.5 w-1.5 rounded-full ${
-                  isActive ? "bg-primary" : "bg-muted-foreground"
-                }`}
-              />
-              {item.label}
-            </Link>
-          );
-        })}
-      </nav>
-
-      <div className="mt-6 rounded-xl border border-border bg-card p-5">
+      <div className="rounded-xl border border-border bg-card p-5">
         <p className="font-mono-label text-xs uppercase text-primary">Rol</p>
         <h3 className="mt-4 font-display text-lg text-foreground">Super Admin</h3>
-        <p className="mt-1 text-xs text-muted-foreground">Acceso a toda la plataforma.</p>
+        {summary ? (
+          <div className="mt-4 flex flex-col gap-2 border-t border-border pt-4">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">Empresas registradas</span>
+              <span className="font-bold text-foreground">{summary.companyCount}</span>
+            </div>
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">Tiquetes vendidos</span>
+              <span className="font-bold text-foreground">{summary.ticketCount}</span>
+            </div>
+          </div>
+        ) : (
+          <p className="mt-1 text-xs text-muted-foreground">Acceso a toda la plataforma.</p>
+        )}
       </div>
 
       <div className="mt-auto border-t border-border pt-6">

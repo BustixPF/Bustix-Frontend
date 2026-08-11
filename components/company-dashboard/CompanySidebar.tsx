@@ -2,9 +2,10 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { companyProfile } from "@/data/companyDashboard";
 import MobileDrawer from "@/components/MobileDrawer";
 import LogoutConfirmModal from "@/components/LogoutConfirmModal";
+import { useAuth } from "@/components/context/AuthContext";
+import type { Company } from "@/lib/api";
 
 const HamburgerIcon = () => (
   <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -14,36 +15,49 @@ const HamburgerIcon = () => (
   </svg>
 );
 
-const NAV_ITEMS = [
-  { label: "Panel", href: "/empresa/dashboard" },
-  { label: "Rutas", href: "#" },
-  { label: "Horarios", href: "#" },
-  { label: "Reservas", href: "#" },
-  { label: "Reportes", href: "#" },
-  { label: "Configuración", href: "#" },
-];
+const STATUS_CONFIG: Record<
+  NonNullable<Company["status"]>,
+  { label: string; note: string; className: string }
+> = {
+  approved: { label: "Aprobada", note: "✓ Cuenta verificada", className: "text-success" },
+  pending: { label: "Pendiente", note: "Esperando aprobación del equipo", className: "text-secondary" },
+  rejected: { label: "Rechazada", note: "Contacta a soporte", className: "text-destructive" },
+};
 
 interface CompanySidebarProps {
-  company: { name: string; initials: string };
+  companyId: string;
+  company: { name: string; initials: string; status?: Company["status"]; rejectionReason?: string | null };
 }
 
-const CompanySidebar = ({ company }: CompanySidebarProps) => {
+const CompanySidebar = ({ companyId, company }: CompanySidebarProps) => {
   const pathname = usePathname();
   const router = useRouter();
+  const { logout } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
+
+  const dashboardHref = `/empresa/dashboard/${companyId}`;
+  const navItems = [
+    { label: "Panel", href: dashboardHref },
+    { label: "Rutas", href: `${dashboardHref}#rutas` },
+    { label: "Horarios", href: `${dashboardHref}#horarios` },
+    { label: "Reservas", href: `${dashboardHref}#reservas` },
+  ];
 
   const closeMenu = () => setIsOpen(false);
 
   const handleLogout = () => {
     closeMenu();
+    logout();
     router.push("/");
   };
+
+  const status = STATUS_CONFIG[company.status ?? "pending"];
 
   const content = (
     <>
       <nav className="flex flex-col gap-1">
-        {NAV_ITEMS.map((item) => {
+        {navItems.map((item) => {
           const isActive = item.href === pathname;
           return (
             <Link
@@ -68,11 +82,12 @@ const CompanySidebar = ({ company }: CompanySidebarProps) => {
       </nav>
 
       <div className="mt-6 rounded-xl border border-border bg-card p-5">
-        <p className="font-mono-label text-xs uppercase text-success">Estado empresa</p>
-        <h3 className="mt-4 font-display text-lg text-foreground">{companyProfile.status}</h3>
-        <p className="mt-1 text-xs text-muted-foreground">{companyProfile.since}</p>
-        <p className="mt-6 font-mono-label text-sm font-bold text-success">
-          ✓ {companyProfile.statusNote}
+        <p className="font-mono-label text-xs uppercase text-muted-foreground">Estado empresa</p>
+        <h3 className={`mt-4 font-display text-lg ${status.className}`}>{status.label}</h3>
+        <p className="mt-1 text-xs text-muted-foreground">
+          {company.status === "rejected" && company.rejectionReason
+            ? company.rejectionReason
+            : status.note}
         </p>
       </div>
 
@@ -83,7 +98,7 @@ const CompanySidebar = ({ company }: CompanySidebarProps) => {
           </span>
           <div>
             <p className="text-sm text-foreground">{company.name}</p>
-            <p className="text-xs text-muted-foreground">{companyProfile.role}</p>
+            <p className="text-xs text-muted-foreground">Admin de empresa</p>
           </div>
         </div>
         <button
