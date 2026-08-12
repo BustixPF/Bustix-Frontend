@@ -33,7 +33,7 @@ const NewScheduleModal = ({ isOpen, companyId, onClose }: NewScheduleModalProps)
       const companyRoutes = allRoutes.filter((route) => route.companyId === companyId);
       setRoutes(companyRoutes);
       if (companyRoutes.length > 0) {
-        setSelectedRouteId(companyRoutes[0].id);
+        setSelectedRouteId(String(companyRoutes[0].id));
         setPrice(companyRoutes[0].price);
       }
     });
@@ -60,13 +60,16 @@ const NewScheduleModal = ({ isOpen, companyId, onClose }: NewScheduleModalProps)
 
   const handleRouteChange = (routeId: string) => {
     setSelectedRouteId(routeId);
-    const route = routes?.find((r) => r.id === routeId);
+    const route = routes?.find((r) => String(r.id) === routeId);
     if (route) setPrice(route.price);
   };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const route = routes?.find((r) => r.id === selectedRouteId);
+    // El id de ruta llega como number desde el back (PrimaryGeneratedColumn,
+    // no UUID) pero el <select> siempre entrega string via onChange - hay
+    // que normalizar antes de comparar o el find() nunca matchea.
+    const route = routes?.find((r) => String(r.id) === selectedRouteId);
     if (!route) return;
 
     setIsSubmitting(true);

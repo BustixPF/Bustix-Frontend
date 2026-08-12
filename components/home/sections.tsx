@@ -3,8 +3,9 @@ import { useEffect, useMemo, useState } from "react";
 import type { ComponentType, SVGProps } from "react";
 import Link from "next/link";
 import SearchForm from "@/components/forms/home/SearchForm";
-import { fetchRoutes, fetchTrips, type ApiRoute, type ApiTrip, type TripStatus } from "@/lib/api";
-import { formatDateLabel, formatTime, toLocalDateISO } from "@/data/viajes";
+import { fetchRoutes, fetchTrips, type ApiRoute, type ApiTrip } from "@/lib/api";
+import { formatDateLabel, formatTime, toLocalDateISO, normalizeCityName } from "@/data/viajes";
+import { TRIP_STATUS_LABEL, TRIP_STATUS_BADGE_CLASSES, TRIP_STATUS_TEXT_CLASSES } from "@/lib/tripStatus";
 
 import {
   benefits,
@@ -30,10 +31,13 @@ const formatDuration = (minutes: number) => {
   return `${hours}h ${mins.toString().padStart(2, "0")}m`;
 };
 
+// Agrupa por ciudad normalizada (sin tildes/mayusculas) para que "Medellín"
+// y "Medellin" -mismo destino, distinta grafia segun quien lo haya escrito
+// al crear la ruta- no aparezcan como dos tarjetas separadas.
 const groupRoutesForDisplay = (routes: ApiRoute[]): PopularRouteCard[] => {
   const groups = new Map<string, ApiRoute[]>();
   for (const route of routes) {
-    const key = `${route.origin}→${route.destination}`;
+    const key = `${normalizeCityName(route.origin)}→${normalizeCityName(route.destination)}`;
     groups.set(key, [...(groups.get(key) ?? []), route]);
   }
 
@@ -51,6 +55,17 @@ const groupRoutesForDisplay = (routes: ApiRoute[]): PopularRouteCard[] => {
       price: Number(cheapest.price),
     };
   });
+};
+
+// Deduplica una lista de nombres de ciudad por su forma normalizada,
+// quedandose con la primera grafia vista como etiqueta para mostrar.
+const canonicalCityOptions = (values: string[]): string[] => {
+  const seen = new Map<string, string>();
+  for (const value of values) {
+    const key = normalizeCityName(value);
+    if (!seen.has(key)) seen.set(key, value);
+  }
+  return Array.from(seen.values());
 };
 
 const MAX_VISIBLE_ROUTES = 12;
@@ -217,11 +232,11 @@ export const PopularRoutes = () => {
   const popularRoutes = useMemo(() => groupRoutesForDisplay(apiRoutes), [apiRoutes]);
 
   const origins = useMemo(
-    () => ["Todos", ...Array.from(new Set(popularRoutes.map((r) => r.origin)))],
+    () => ["Todos", ...canonicalCityOptions(popularRoutes.map((r) => r.origin))],
     [popularRoutes]
   );
   const destinations = useMemo(
-    () => ["Todos", ...Array.from(new Set(popularRoutes.map((r) => r.destination)))],
+    () => ["Todos", ...canonicalCityOptions(popularRoutes.map((r) => r.destination))],
     [popularRoutes]
   );
   const companies = useMemo(
@@ -245,12 +260,22 @@ export const PopularRoutes = () => {
 
   const filteredRoutes = useMemo(() => {
     return popularRoutes.filter((route) => {
-      if (origin !== "Todos" && route.origin !== origin) return false;
-      if (destination !== "Todos" && route.destination !== destination) return false;
+      if (origin !== "Todos" && normalizeCityName(route.origin) !== normalizeCityName(origin)) {
+        return false;
+      }
+      if (
+        destination !== "Todos" &&
+        normalizeCityName(route.destination) !== normalizeCityName(destination)
+      ) {
+        return false;
+      }
       if (company !== "Todos" && route.company !== company) return false;
       if (date !== "Todos") {
         const hasTripOnDate = apiTrips.some((trip) => {
-          if (trip.origin !== route.origin || trip.destination !== route.destination) {
+          if (
+            normalizeCityName(trip.origin) !== normalizeCityName(route.origin) ||
+            normalizeCityName(trip.destination) !== normalizeCityName(route.destination)
+          ) {
             return false;
           }
           return toLocalDateISO(new Date(trip.departureDate)) === date;
@@ -412,38 +437,9 @@ export const PopularRoutes = () => {
 
 // ---------- Próximas salidas ----------
 
-const STATUS_LABEL: Record<TripStatus, string> = {
-  A_TIEMPO: "A tiempo",
-  EMBARCANDO: "Embarcando",
-  EN_RUTA: "En ruta",
-  SALIO: "Salió",
-  LLEGÓ: "Llegó",
-  RETRASADO: "Retrasado",
-  CANCELADO: "Cancelado",
-  REPROGRAMADO: "Reprogramado",
-};
-
-const STATUS_CLASSES: Record<TripStatus, string> = {
-  A_TIEMPO: "bg-success/15 text-success",
-  EMBARCANDO: "bg-primary/15 text-primary",
-  EN_RUTA: "bg-primary/15 text-primary",
-  SALIO: "bg-muted text-muted-foreground",
-  LLEGÓ: "bg-success/15 text-success",
-  RETRASADO: "bg-destructive/15 text-destructive",
-  CANCELADO: "bg-destructive/15 text-destructive",
-  REPROGRAMADO: "bg-secondary/15 text-secondary",
-};
-
-const STATUS_TEXT_CLASSES: Record<TripStatus, string> = {
-  A_TIEMPO: "text-success",
-  EMBARCANDO: "text-primary",
-  EN_RUTA: "text-primary",
-  SALIO: "text-muted-foreground",
-  LLEGÓ: "text-success",
-  RETRASADO: "text-destructive",
-  CANCELADO: "text-destructive",
-  REPROGRAMADO: "text-secondary",
-};
+const STATUS_LABEL = TRIP_STATUS_LABEL;
+const STATUS_CLASSES = TRIP_STATUS_BADGE_CLASSES;
+const STATUS_TEXT_CLASSES = TRIP_STATUS_TEXT_CLASSES;
 
 export const UpcomingDepartures = () => {
   const [departures, setDepartures] = useState<UpcomingDeparture[] | null>(null);

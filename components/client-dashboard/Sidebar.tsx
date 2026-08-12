@@ -4,9 +4,10 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { formatCOP } from "@/data/home";
 import { useAuth } from "@/components/context/AuthContext";
-import { getInitials, getRoleLabel } from "@/lib/user";
+import { getRoleLabel } from "@/lib/user";
 import MobileDrawer from "@/components/MobileDrawer";
 import LogoutConfirmModal from "@/components/LogoutConfirmModal";
+import Avatar from "@/components/Avatar";
 import { fetchRoutes, type ApiRoute } from "@/lib/api";
 
 const HamburgerIcon = () => (
@@ -113,9 +114,11 @@ const Sidebar = () => {
 
       <div className="mt-auto border-t border-border pt-6">
         <div className="flex items-center gap-3">
-          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary text-sm font-bold text-secondary-foreground">
-            {getInitials(user.name)}
-          </span>
+          <Avatar
+            src={user.profilePicture}
+            name={user.name}
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary text-sm font-bold text-secondary-foreground"
+          />
           <div>
             <p className="text-sm text-foreground">{user.name}</p>
             <p className="text-xs text-muted-foreground">{getRoleLabel(user.role)}</p>

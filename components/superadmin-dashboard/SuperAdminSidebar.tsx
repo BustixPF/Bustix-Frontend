@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import MobileDrawer from "@/components/MobileDrawer";
 import LogoutConfirmModal from "@/components/LogoutConfirmModal";
 import { useAuth } from "@/components/context/AuthContext";
-import { getInitials } from "@/lib/user";
+import Avatar from "@/components/Avatar";
 import { fetchDashboardSummary, type DashboardSummary } from "@/lib/api";
 
 const HamburgerIcon = () => (
@@ -66,9 +66,11 @@ const SuperAdminSidebar = () => {
 
       <div className="mt-auto border-t border-border pt-6">
         <div className="flex items-center gap-3">
-          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
-            {getInitials(user?.name ?? "SA")}
-          </span>
+          <Avatar
+            src={user?.profilePicture}
+            name={user?.name ?? "SA"}
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground"
+          />
           <div>
             <p className="text-sm text-foreground">{user?.name ?? "Super Admin"}</p>
             <p className="text-xs text-muted-foreground">superAdmin</p>

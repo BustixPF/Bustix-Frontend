@@ -8,7 +8,8 @@ import {
   type AdminUser,
   type UserRole,
 } from "@/lib/api";
-import { getInitials, getRoleLabel } from "@/lib/user";
+import { getRoleLabel } from "@/lib/user";
+import Avatar from "@/components/Avatar";
 import RoleChangeModal from "./RoleChangeModal";
 
 const PAGE_SIZE = 15;
@@ -92,9 +93,11 @@ const UsersManagementCard = () => {
                 className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border p-3"
               >
                 <div className="flex items-center gap-3">
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary text-xs font-bold text-secondary-foreground">
-                    {getInitials(user.name)}
-                  </span>
+                  <Avatar
+                    src={user.profilePicture}
+                    name={user.name}
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary text-xs font-bold text-secondary-foreground"
+                  />
                   <div>
                     <p className="text-sm font-medium text-card-foreground">{user.name}</p>
                     <p className="text-xs text-muted-foreground">{user.email}</p>

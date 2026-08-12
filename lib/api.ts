@@ -195,22 +195,21 @@ export const uploadCompanyDocument = async (companyId: string, file: File) => {
   return data;
 };
 
-// El endpoint existe (POST /file-upload/user/:userId) pero hoy esta roto del
-// lado del backend: lee el companyId de la ruta en vez del userId, y aunque
-// se arreglara ese typo, el repositorio solo sabe buscar el id en la tabla
-// companies (no existe ningun vinculo Document->User ni columna
-// profilePicture en User). Se deja conectado ya, apuntando al contrato que
-// se espera una vez lo arreglen: sube el archivo y devuelve la URL nueva.
+// El back ya lo implemento en un endpoint dedicado (distinto del que se
+// esperaba originalmente): sube a Cloudinary y guarda la URL en
+// User.profilePicture, devolviendo { message, profilePictureUrl }.
 export const uploadProfilePicture = async (
   userId: string,
   file: File
 ): Promise<{ profilePicture: string }> => {
   const formData = new FormData();
   formData.append("file", file);
-  const { data } = await api.post(`/file-upload/user/${userId}`, formData, {
-    headers: { "Content-Type": undefined },
-  });
-  return data;
+  const { data } = await api.post(
+    `/file-upload/user/${userId}/profile-picture`,
+    formData,
+    { headers: { "Content-Type": undefined } }
+  );
+  return { profilePicture: data.profilePictureUrl };
 };
 
 export type TripStatus =
@@ -257,6 +256,20 @@ export const fetchTripById = async (id: string): Promise<ApiTrip | null> => {
   } catch {
     return null;
   }
+};
+
+export type ManualTripStatus = "CANCELADO" | "RETRASADO" | "REPROGRAMADO";
+
+export const updateTripStatus = async (
+  tripId: string,
+  status: ManualTripStatus,
+  newDepartureDate?: string
+): Promise<ApiTrip> => {
+  const { data } = await api.patch(`/trips/${tripId}/status`, {
+    status,
+    ...(newDepartureDate ? { newDepartureDate } : {}),
+  });
+  return data;
 };
 
 export interface RequestSchedulePayload {
@@ -511,6 +524,7 @@ export interface AdminUser {
   address?: string | null;
   role: UserRole;
   companyId?: string | null;
+  profilePicture?: string | null;
 }
 
 // Requiere superAdmin. El backend pagina con page/limit, sin busqueda server-side.
@@ -589,4 +603,36 @@ export const fetchSuperAdminPendingSummary = async (): Promise<SuperAdminPending
     routes: routes.length,
     schedules: schedules.length,
   };
+};
+
+export interface HealthCheckDetail {
+  status: "up" | "down";
+  message?: string;
+}
+
+export interface SystemHealth {
+  status: "ok" | "error" | "shutting_down";
+  details: Record<string, HealthCheckDetail>;
+}
+
+// Terminus responde 200 si todo esta "up" pero 503 si algo esta "down" - en
+// ambos casos el body trae el detalle de cada check, asi que hay que leerlo
+// tambien del error de axios (no solo del caso feliz).
+export const fetchSystemHealth = async (): Promise<SystemHealth | null> => {
+  try {
+    const { data } = await api.get("/dashboard/superadmin/health");
+    return data;
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.data?.details) {
+      return error.response.data;
+    }
+    return null;
+  }
+};
+
+// Fuerza role:"admin" en el usuario elegido sin validar si ya era admin de
+// otra empresa - el picker del front filtra superAdmins para evitar una
+// degradacion accidental de esa cuenta.
+export const assignCompanyAdmin = async (companyId: string, userId: string): Promise<void> => {
+  await api.patch(`/companies/${companyId}/assign-admin`, { userId });
 };

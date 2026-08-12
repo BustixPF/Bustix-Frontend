@@ -1,7 +1,8 @@
 "use client";
 import Link from "next/link";
 import { useAuth } from "@/components/context/AuthContext";
-import { getInitials, getRoleLabel } from "@/lib/user";
+import { getRoleLabel } from "@/lib/user";
+import Avatar from "@/components/Avatar";
 
 const ProfileCard = () => {
   const { user } = useAuth();
@@ -11,9 +12,11 @@ const ProfileCard = () => {
   return (
     <div className="rounded-2xl border border-border bg-card p-4 sm:p-6">
       <div className="flex items-center gap-3">
-        <span className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary text-base font-bold text-secondary-foreground">
-          {getInitials(user.name)}
-        </span>
+        <Avatar
+          src={user.profilePicture}
+          name={user.name}
+          className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary text-base font-bold text-secondary-foreground"
+        />
         <div>
           <h3 className="font-display text-base text-card-foreground">{user.name}</h3>
           <p className="text-xs text-muted-foreground">{user.email}</p>

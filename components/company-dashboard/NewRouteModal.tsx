@@ -1,7 +1,21 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { api, getApiErrorMessage } from "@/lib/api";
+import { api, fetchRoutes, getApiErrorMessage } from "@/lib/api";
+import { normalizeCityName } from "@/data/viajes";
+
+const CITY_DATALIST_ID = "bustix-city-options";
+
+// Deduplica ciudades por su forma normalizada (sin tildes/mayusculas), para
+// no sugerir "Medellín" y "Medellin" como si fueran destinos distintos.
+const canonicalCityOptions = (values: string[]): string[] => {
+  const seen = new Map<string, string>();
+  for (const value of values) {
+    const key = normalizeCityName(value);
+    if (!seen.has(key)) seen.set(key, value);
+  }
+  return Array.from(seen.values()).sort((a, b) => a.localeCompare(b, "es"));
+};
 
 interface NewRouteModalProps {
   isOpen: boolean;
@@ -21,6 +35,22 @@ const NewRouteModal = ({ isOpen, onClose }: NewRouteModalProps) => {
   const [duration, setDuration] = useState("");
   const [price, setPrice] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [cityOptions, setCityOptions] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    let cancelled = false;
+
+    fetchRoutes().then((routes) => {
+      if (cancelled) return;
+      const cities = routes.flatMap((route) => [route.origin, route.destination]);
+      setCityOptions(canonicalCityOptions(cities));
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -85,6 +115,7 @@ const NewRouteModal = ({ isOpen, onClose }: NewRouteModalProps) => {
             <input
               type="text"
               required
+              list={CITY_DATALIST_ID}
               placeholder="Medellín"
               value={origin}
               onChange={(event) => setOrigin(event.target.value)}
@@ -99,12 +130,19 @@ const NewRouteModal = ({ isOpen, onClose }: NewRouteModalProps) => {
             <input
               type="text"
               required
+              list={CITY_DATALIST_ID}
               placeholder="Bogotá"
               value={destination}
               onChange={(event) => setDestination(event.target.value)}
               className="mt-1.5 w-full rounded-lg border border-border bg-muted px-4 py-2.5 text-sm text-card-foreground outline-none focus:border-primary"
             />
           </label>
+
+          <datalist id={CITY_DATALIST_ID}>
+            {cityOptions.map((city) => (
+              <option key={city} value={city} />
+            ))}
+          </datalist>
 
           <div className="mt-4 grid grid-cols-2 gap-3">
             <label className="block">

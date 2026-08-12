@@ -7,8 +7,10 @@ import CompanyRequestsCard from "@/components/superadmin-dashboard/CompanyReques
 import RouteRequestsCard from "@/components/superadmin-dashboard/RouteRequestsCard";
 import ScheduleRequestsCard from "@/components/superadmin-dashboard/ScheduleRequestsCard";
 import UsersManagementCard from "@/components/superadmin-dashboard/UsersManagementCard";
+import AssignAdminCard from "@/components/superadmin-dashboard/AssignAdminCard";
 import GlobalSalesCard from "@/components/superadmin-dashboard/GlobalSalesCard";
 import RefundPaymentCard from "@/components/superadmin-dashboard/RefundPaymentCard";
+import SystemHealthCard from "@/components/superadmin-dashboard/SystemHealthCard";
 
 function SuperAdminDashboardContent() {
   return (
@@ -35,9 +37,17 @@ function SuperAdminDashboardContent() {
           <UsersManagementCard />
         </div>
 
+        <div className="mt-6">
+          <AssignAdminCard />
+        </div>
+
         <div className="mt-6 grid min-w-0 gap-6 xl:grid-cols-[1fr_380px]">
           <GlobalSalesCard />
           <RefundPaymentCard />
+        </div>
+
+        <div className="mt-6">
+          <SystemHealthCard />
         </div>
       </main>
     </div>
