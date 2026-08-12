@@ -3,13 +3,16 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
   fetchCompaniesWithDocuments,
+  fetchCompanies,
   fetchUsers,
   assignCompanyAdmin,
+  updateCompanyActive,
   getApiErrorMessage,
   type Company,
   type AdminUser,
 } from "@/lib/api";
 import AssignAdminModal from "./AssignAdminModal";
+import ConfirmModal from "@/components/ConfirmModal";
 
 const AssignAdminCard = () => {
   const [companies, setCompanies] = useState<Company[] | null>(null);
@@ -17,17 +20,29 @@ const AssignAdminCard = () => {
   const [search, setSearch] = useState("");
   const [target, setTarget] = useState<Company | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [activeTarget, setActiveTarget] = useState<Company | null>(null);
+  const [isTogglingActive, setIsTogglingActive] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
 
     (async () => {
-      const [companiesResult, usersResult] = await Promise.all([
+      // /dashboard/superadmin/companies trae TODAS las empresas (incluye
+      // pendientes) pero sin isActive; /companies es publico y solo trae
+      // aprobadas, pero con isActive - se cruzan por id para tener ambas cosas.
+      const [companiesResult, usersResult, approvedResult] = await Promise.all([
         fetchCompaniesWithDocuments(),
         fetchUsers(1, 100),
+        fetchCompanies(),
       ]);
       if (cancelled) return;
-      setCompanies(companiesResult);
+      const activeById = new Map(approvedResult.map((c) => [c.id, c.isActive ?? true]));
+      setCompanies(
+        companiesResult.map((company) => ({
+          ...company,
+          isActive: activeById.get(company.id) ?? true,
+        }))
+      );
       setUsers(usersResult);
     })();
 
@@ -35,6 +50,26 @@ const AssignAdminCard = () => {
       cancelled = true;
     };
   }, []);
+
+  const handleToggleActive = async () => {
+    if (!activeTarget) return;
+    const nextActive = !(activeTarget.isActive ?? true);
+    setIsTogglingActive(true);
+    try {
+      const updated = await updateCompanyActive(activeTarget.id, nextActive);
+      setCompanies((prev) =>
+        (prev ?? []).map((c) => (c.id === updated.id ? { ...c, ...updated } : c))
+      );
+      toast.success(nextActive ? `${updated.name} fue reactivada` : `${updated.name} fue desactivada`);
+      setActiveTarget(null);
+    } catch (error) {
+      toast.error("No se pudo cambiar el estado", {
+        description: getApiErrorMessage(error, "Intenta de nuevo en unos minutos"),
+      });
+    } finally {
+      setIsTogglingActive(false);
+    }
+  };
 
   // No hay endpoint que devuelva "el admin de la empresa X" directo - se
   // infiere cruzando la lista de usuarios por companyId + role admin.
@@ -109,18 +144,36 @@ const AssignAdminCard = () => {
                   className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border p-3"
                 >
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-card-foreground">{company.name}</p>
+                    <p className="flex items-center gap-2 text-sm font-medium text-card-foreground">
+                      {company.name}
+                      {company.isActive === false && (
+                        <span className="rounded-full bg-destructive/15 px-2 py-0.5 text-[10.5px] font-bold text-destructive">
+                          Desactivada
+                        </span>
+                      )}
+                    </p>
                     <p className="truncate text-xs text-muted-foreground">
                       {admin ? `Admin: ${admin.name} (${admin.email})` : "Sin administrador asignado"}
                     </p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setTarget(company)}
-                    className="shrink-0 text-xs font-bold text-accent hover:underline"
-                  >
-                    {admin ? "Reasignar admin" : "Asignar admin"}
-                  </button>
+                  <div className="flex shrink-0 items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setTarget(company)}
+                      className="text-xs font-bold text-accent hover:underline"
+                    >
+                      {admin ? "Reasignar admin" : "Asignar admin"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTarget(company)}
+                      className={`text-xs font-bold hover:underline ${
+                        company.isActive === false ? "text-success" : "text-destructive"
+                      }`}
+                    >
+                      {company.isActive === false ? "Reactivar" : "Desactivar"}
+                    </button>
+                  </div>
                 </div>
               );
             })}
@@ -135,6 +188,22 @@ const AssignAdminCard = () => {
           isSubmitting={isSubmitting}
           onConfirm={handleAssign}
           onClose={() => setTarget(null)}
+        />
+      )}
+
+      {activeTarget && (
+        <ConfirmModal
+          title={activeTarget.isActive === false ? "¿Reactivar empresa?" : "¿Desactivar empresa?"}
+          message={
+            activeTarget.isActive === false
+              ? `${activeTarget.name} y sus administradores van a recuperar el acceso.`
+              : `${activeTarget.name} y todos sus administradores van a perder el acceso hasta que la reactives.`
+          }
+          confirmLabel={activeTarget.isActive === false ? "Reactivar" : "Desactivar"}
+          destructive={activeTarget.isActive !== false}
+          isSubmitting={isTogglingActive}
+          onConfirm={handleToggleActive}
+          onClose={() => setActiveTarget(null)}
         />
       )}
     </div>

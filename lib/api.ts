@@ -91,6 +91,7 @@ export interface Company {
   status?: "pending" | "approved" | "rejected";
   rejectionReason?: string | null;
   documents?: CompanyDocument[];
+  isActive?: boolean;
 }
 
 // Admin sin companyId es un estado inconsistente (cuenta vieja o promovida
@@ -164,6 +165,16 @@ export const rejectCompany = async (
   reason?: string
 ): Promise<Company> => {
   const { data } = await api.patch(`/companies/${companyId}/reject`, reason ? { reason } : {});
+  return data;
+};
+
+// Desactivar una empresa tambien desactiva en cascada a sus administradores
+// (lo hace el back). Requiere superAdmin.
+export const updateCompanyActive = async (
+  companyId: string,
+  isActive: boolean
+): Promise<Company> => {
+  const { data } = await api.patch(`/companies/${companyId}/active`, { isActive });
   return data;
 };
 
@@ -525,6 +536,7 @@ export interface AdminUser {
   role: UserRole;
   companyId?: string | null;
   profilePicture?: string | null;
+  isActive?: boolean;
 }
 
 // Requiere superAdmin. El backend pagina con page/limit, sin busqueda server-side.
@@ -539,6 +551,16 @@ export const fetchUsers = async (page = 1, limit = 15): Promise<AdminUser[]> => 
 
 export const changeUserRole = async (userId: string, role: UserRole): Promise<AdminUser> => {
   const { data } = await api.patch(`/dashboard/superadmin/users/${userId}/role`, { role });
+  return data;
+};
+
+// Un usuario desactivado ya no puede iniciar sesion (lo valida el back en
+// login/signup/JwtStrategy). Requiere superAdmin.
+export const updateUserActive = async (
+  userId: string,
+  isActive: boolean
+): Promise<AdminUser> => {
+  const { data } = await api.patch(`/users/${userId}/active`, { isActive });
   return data;
 };
 
@@ -635,4 +657,28 @@ export const fetchSystemHealth = async (): Promise<SystemHealth | null> => {
 // degradacion accidental de esa cuenta.
 export const assignCompanyAdmin = async (companyId: string, userId: string): Promise<void> => {
   await api.patch(`/companies/${companyId}/assign-admin`, { userId });
+};
+
+export interface AuditLogEntry {
+  id: string;
+  userId: string | null;
+  userEmail: string | null;
+  userRole: string | null;
+  action: string;
+  method: string;
+  endpoint: string;
+  ip: string | null;
+  createdAt: string;
+}
+
+// Solo trae acciones que tengan el decorador @AuditAction en el back -
+// hoy en dia son las de aprobar/rechazar empresa, cambiar su estado activo
+// y asignar administrador. Requiere superAdmin.
+export const fetchAuditLogs = async (): Promise<AuditLogEntry[]> => {
+  try {
+    const { data } = await api.get("/admin/audit-logs");
+    return data;
+  } catch {
+    return [];
+  }
 };

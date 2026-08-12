@@ -11,6 +11,7 @@ import AssignAdminCard from "@/components/superadmin-dashboard/AssignAdminCard";
 import GlobalSalesCard from "@/components/superadmin-dashboard/GlobalSalesCard";
 import RefundPaymentCard from "@/components/superadmin-dashboard/RefundPaymentCard";
 import SystemHealthCard from "@/components/superadmin-dashboard/SystemHealthCard";
+import AuditLogCard from "@/components/superadmin-dashboard/AuditLogCard";
 
 function SuperAdminDashboardContent() {
   return (
@@ -48,6 +49,10 @@ function SuperAdminDashboardContent() {
 
         <div className="mt-6">
           <SystemHealthCard />
+        </div>
+
+        <div className="mt-6">
+          <AuditLogCard />
         </div>
       </main>
     </div>

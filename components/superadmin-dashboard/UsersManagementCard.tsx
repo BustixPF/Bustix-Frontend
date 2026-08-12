@@ -4,12 +4,14 @@ import { toast } from "sonner";
 import {
   fetchUsers,
   changeUserRole,
+  updateUserActive,
   getApiErrorMessage,
   type AdminUser,
   type UserRole,
 } from "@/lib/api";
 import { getRoleLabel } from "@/lib/user";
 import Avatar from "@/components/Avatar";
+import ConfirmModal from "@/components/ConfirmModal";
 import RoleChangeModal from "./RoleChangeModal";
 
 const PAGE_SIZE = 15;
@@ -19,7 +21,9 @@ const UsersManagementCard = () => {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [target, setTarget] = useState<AdminUser | null>(null);
+  const [activeTarget, setActiveTarget] = useState<AdminUser | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isTogglingActive, setIsTogglingActive] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -49,6 +53,24 @@ const UsersManagementCard = () => {
       });
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleToggleActive = async () => {
+    if (!activeTarget) return;
+    const nextActive = !(activeTarget.isActive ?? true);
+    setIsTogglingActive(true);
+    try {
+      const updated = await updateUserActive(activeTarget.id, nextActive);
+      setUsers((prev) => (prev ?? []).map((u) => (u.id === updated.id ? updated : u)));
+      toast.success(nextActive ? `${updated.name} fue reactivado` : `${updated.name} fue desactivado`);
+      setActiveTarget(null);
+    } catch (error) {
+      toast.error("No se pudo cambiar el estado", {
+        description: getApiErrorMessage(error, "Intenta de nuevo en unos minutos"),
+      });
+    } finally {
+      setIsTogglingActive(false);
     }
   };
 
@@ -104,8 +126,15 @@ const UsersManagementCard = () => {
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="rounded-full bg-muted px-3 py-1 text-xs font-bold text-muted-foreground">
+                  <span
+                    className={`rounded-full px-3 py-1 text-xs font-bold ${
+                      user.isActive === false
+                        ? "bg-destructive/15 text-destructive"
+                        : "bg-muted text-muted-foreground"
+                    }`}
+                  >
                     {getRoleLabel(user.role)}
+                    {user.isActive === false ? " · Desactivado" : ""}
                   </span>
                   <button
                     type="button"
@@ -113,6 +142,15 @@ const UsersManagementCard = () => {
                     className="text-xs font-bold text-accent hover:underline"
                   >
                     Cambiar rol
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTarget(user)}
+                    className={`text-xs font-bold hover:underline ${
+                      user.isActive === false ? "text-success" : "text-destructive"
+                    }`}
+                  >
+                    {user.isActive === false ? "Reactivar" : "Desactivar"}
                   </button>
                 </div>
               </div>
@@ -147,6 +185,22 @@ const UsersManagementCard = () => {
           isSubmitting={isSubmitting}
           onConfirm={handleChangeRole}
           onClose={() => setTarget(null)}
+        />
+      )}
+
+      {activeTarget && (
+        <ConfirmModal
+          title={activeTarget.isActive === false ? "¿Reactivar usuario?" : "¿Desactivar usuario?"}
+          message={
+            activeTarget.isActive === false
+              ? `${activeTarget.name} va a poder iniciar sesión de nuevo.`
+              : `${activeTarget.name} no va a poder iniciar sesión hasta que lo reactives.`
+          }
+          confirmLabel={activeTarget.isActive === false ? "Reactivar" : "Desactivar"}
+          destructive={activeTarget.isActive !== false}
+          isSubmitting={isTogglingActive}
+          onConfirm={handleToggleActive}
+          onClose={() => setActiveTarget(null)}
         />
       )}
     </div>
