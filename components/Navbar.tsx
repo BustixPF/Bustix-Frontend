@@ -1,10 +1,13 @@
 "use client";
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
 import { useAuth } from '@/components/context/AuthContext'
-import { DEMO_COMPANY_ID } from '@/lib/api'
+import { getDashboardPathForRole, fetchMyTickets, fetchSuperAdminPendingSummary } from '@/lib/api'
 import MobileDrawer from '@/components/MobileDrawer'
+import LogoutConfirmModal from '@/components/LogoutConfirmModal'
+import NotificationsDropdown from '@/components/NotificationsDropdown'
+import SuperAdminNotificationsDropdown from '@/components/SuperAdminNotificationsDropdown'
 
 const BellIcon = () => (
   <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -71,6 +74,80 @@ const Navbar = () => {
   const router = useRouter()
   const pathname = usePathname()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false)
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
+  const notificationsRef = useRef<HTMLDivElement>(null)
+  const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false)
+  const NOTIFICATIONS_LAST_SEEN_KEY = 'bustix_notifications_last_seen'
+
+  const isSuperAdmin = user?.role === 'superAdmin'
+
+  useEffect(() => {
+    if (!user) return
+    let cancelled = false
+
+    // El superAdmin no compra tiquetes - para el, "no leido" es que haya
+    // solicitudes pendientes, no una compra nueva.
+    if (isSuperAdmin) {
+      fetchSuperAdminPendingSummary().then((summary) => {
+        if (cancelled) return
+        setHasUnreadNotifications(summary.companies + summary.routes + summary.schedules > 0)
+      })
+      return () => {
+        cancelled = true
+      }
+    }
+
+    fetchMyTickets().then((tickets) => {
+      if (cancelled) return
+      const latest = tickets
+        .map((ticket) => ticket.purchaseDate)
+        .sort()
+        .at(-1)
+      if (!latest) {
+        setHasUnreadNotifications(false)
+        return
+      }
+      const lastSeen = window.localStorage.getItem(NOTIFICATIONS_LAST_SEEN_KEY)
+      setHasUnreadNotifications(!lastSeen || latest > lastSeen)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [user, isSuperAdmin])
+
+  const handleToggleNotifications = () => {
+    setIsNotificationsOpen((prev) => {
+      const next = !prev
+      // El indicador del superAdmin refleja si sigue habiendo pendientes,
+      // no se "marca como leido" al abrir el panel.
+      if (next && !isSuperAdmin) {
+        fetchMyTickets().then((tickets) => {
+          const latest = tickets
+            .map((ticket) => ticket.purchaseDate)
+            .sort()
+            .at(-1)
+          if (latest) {
+            window.localStorage.setItem(NOTIFICATIONS_LAST_SEEN_KEY, latest)
+          }
+        })
+        setHasUnreadNotifications(false)
+      }
+      return next
+    })
+  }
+
+
+  useEffect(() => {
+    if (!isNotificationsOpen) return
+    const handleClickOutside = (event: MouseEvent) => {
+      if (notificationsRef.current && !notificationsRef.current.contains(event.target as Node)) {
+        setIsNotificationsOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [isNotificationsOpen])
 
   const closeMenu = () => setIsMenuOpen(false)
 
@@ -96,33 +173,40 @@ const Navbar = () => {
         </Link>
       )}
 
-      {/* TODO: quitar este acceso directo cuando exista login real de empresas y un companyId ligado al usuario */}
-      <Link href={`/empresa/dashboard/${DEMO_COMPANY_ID}`} onClick={closeMenu} className="navbar-link">
-        Dashboard Empresa
-      </Link>
-
-      {/* TODO: quitar este acceso directo cuando haya un flujo real para llegar a /viajes */}
-      <Link href="/viajes" onClick={closeMenu} className="navbar-link">
-        Viajes
-      </Link>
 
       {user ? (
         <>
-          <button
-            type="button"
-            aria-label="Notificaciones"
-            className="relative flex h-9 w-9 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:border-primary hover:text-foreground"
-          >
-            <BellIcon />
-            <span className="absolute right-2 top-1.5 h-2 w-2 rounded-full bg-accent" />
-          </button>
+          <div ref={notificationsRef} className="relative">
+            <button
+              type="button"
+              aria-label="Notificaciones"
+              aria-expanded={isNotificationsOpen}
+              onClick={handleToggleNotifications}
+              className="relative flex h-9 w-9 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:border-primary hover:text-foreground"
+            >
+              <BellIcon />
+              {user && hasUnreadNotifications && (
+                <span className="absolute right-2 top-1.5 h-2 w-2 rounded-full bg-accent" />
+              )}
+            </button>
 
-          <Link href="/cliente/dashboard" onClick={closeMenu} className="navbar-link">
+            {isNotificationsOpen && (
+              <div className="absolute right-0 top-full z-50 mt-2">
+                {isSuperAdmin ? <SuperAdminNotificationsDropdown /> : <NotificationsDropdown />}
+              </div>
+            )}
+          </div>
+
+          <Link
+            href={getDashboardPathForRole(user.role, user.companyId) ?? '/'}
+            onClick={closeMenu}
+            className="navbar-link"
+          >
             Hola, {user.name}
           </Link>
           <button
             type="button"
-            onClick={handleLogout}
+            onClick={() => setIsLogoutConfirmOpen(true)}
             className="rounded-full bg-primary px-5 py-2 text-sm font-bold text-primary-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
           >
             Cerrar sesión
@@ -169,8 +253,18 @@ const Navbar = () => {
       <MobileDrawer isOpen={isMenuOpen} onClose={closeMenu}>
         <ul className="flex flex-col gap-3">{links}</ul>
       </MobileDrawer>
+
+      {isLogoutConfirmOpen && (
+        <LogoutConfirmModal
+          onConfirm={() => {
+            setIsLogoutConfirmOpen(false)
+            handleLogout()
+          }}
+          onClose={() => setIsLogoutConfirmOpen(false)}
+        />
+      )}
     </nav>
   )
 }
 
-export default Navbar
+export default Navbar;

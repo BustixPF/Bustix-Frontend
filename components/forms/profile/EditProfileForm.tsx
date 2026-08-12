@@ -1,21 +1,62 @@
 "use client";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useFormik } from "formik";
 import { toast } from "sonner";
 import EyeIcon from "@/components/forms/register/EyeIcon";
-import { api, getApiErrorMessage } from "@/lib/api";
+import { api, getApiErrorMessage, uploadProfilePicture, deleteAccount } from "@/lib/api";
 import { useAuth } from "@/components/context/AuthContext";
+import { getInitials } from "@/lib/user";
 import {
   buildEditProfileInitialValues,
   editProfileValidationSchema,
 } from "@/components/forms/profile/EditProfileSchema";
+import DeleteAccountModal from "@/components/forms/profile/DeleteAccountModal";
 
 const EditProfileForm = () => {
-  const { user, login } = useAuth();
+  const { user, login, logout } = useAuth();
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isUploadingPicture, setIsUploadingPicture] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handlePictureSelected = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file || !user) return;
+
+    setIsUploadingPicture(true);
+    try {
+      const { profilePicture } = await uploadProfilePicture(user.id, file);
+      login({ ...user, profilePicture });
+      toast.success("Foto de perfil actualizada");
+    } catch (error) {
+      toast.error("No se pudo subir la foto", {
+        description: getApiErrorMessage(error, "Intenta de nuevo en unos minutos"),
+      });
+    } finally {
+      setIsUploadingPicture(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!user) return;
+    setIsDeletingAccount(true);
+    try {
+      await deleteAccount(user.id);
+      toast.success("Tu cuenta fue eliminada");
+      logout();
+      router.push("/");
+    } catch (error) {
+      toast.error("No se pudo eliminar la cuenta", {
+        description: getApiErrorMessage(error, "Intenta de nuevo en unos minutos"),
+      });
+      setIsDeletingAccount(false);
+    }
+  };
 
   const formik = useFormik({
     initialValues: buildEditProfileInitialValues(user),
@@ -52,6 +93,38 @@ const EditProfileForm = () => {
 
   return (
     <form onSubmit={formik.handleSubmit} noValidate className="mt-6 max-w-lg">
+      <div className="flex items-center gap-4">
+        <span className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full bg-secondary text-xl font-bold text-secondary-foreground">
+          {user.profilePicture ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={user.profilePicture} alt="" className="h-full w-full object-cover" />
+          ) : (
+            getInitials(user.name)
+          )}
+        </span>
+
+        <div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handlePictureSelected}
+            className="hidden"
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isUploadingPicture}
+            className="rounded-full border border-border px-4 py-2 text-sm font-semibold text-card-foreground transition-colors hover:border-primary disabled:opacity-60"
+          >
+            {isUploadingPicture ? "Subiendo..." : "Cambiar foto"}
+          </button>
+          <p className="mt-1.5 text-xs text-muted-foreground">JPG o PNG, opcional.</p>
+        </div>
+      </div>
+
+      <div className="mt-6 border-t border-border pt-6" />
+
       <label className="block">
         <span className="font-mono-label text-xs uppercase text-muted-foreground">
           Nombre completo
@@ -210,6 +283,28 @@ const EditProfileForm = () => {
       >
         {formik.isSubmitting ? "Guardando..." : "Guardar cambios"}
       </button>
+
+      <div className="mt-8 border-t border-border pt-6">
+        <p className="text-sm font-bold text-card-foreground">Eliminar cuenta</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Esta acción es permanente y no se puede deshacer.
+        </p>
+        <button
+          type="button"
+          onClick={() => setIsDeleteModalOpen(true)}
+          className="mt-4 rounded-full border border-destructive px-5 py-2.5 text-sm font-semibold text-destructive transition-colors hover:bg-destructive hover:text-destructive-foreground"
+        >
+          Eliminar mi cuenta
+        </button>
+      </div>
+
+      {isDeleteModalOpen && (
+        <DeleteAccountModal
+          isSubmitting={isDeletingAccount}
+          onConfirm={handleDeleteAccount}
+          onClose={() => setIsDeleteModalOpen(false)}
+        />
+      )}
     </form>
   );
 };

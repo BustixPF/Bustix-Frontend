@@ -5,14 +5,12 @@ import NewScheduleModal from "@/components/company-dashboard/NewScheduleModal";
 
 interface QuickActionsCardProps {
   companyId: string;
-  onTripCreated?: () => void;
 }
 
-const QuickActionsCard = ({ companyId, onTripCreated }: QuickActionsCardProps) => {
+const QuickActionsCard = ({ companyId }: QuickActionsCardProps) => {
   const [isNewRouteOpen, setIsNewRouteOpen] = useState(false);
   const [isNewScheduleOpen, setIsNewScheduleOpen] = useState(false);
   const [occupancyAverage, setOccupancyAverage] = useState<number | null>(null);
-  const [scheduleRefreshKey, setScheduleRefreshKey] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -41,12 +39,7 @@ const QuickActionsCard = ({ companyId, onTripCreated }: QuickActionsCardProps) =
     return () => {
       cancelled = true;
     };
-  }, [companyId, scheduleRefreshKey]);
-
-  const handleTripCreated = () => {
-    setScheduleRefreshKey((prev) => prev + 1);
-    onTripCreated?.();
-  };
+  }, [companyId]);
 
   return (
     <div className="rounded-2xl border border-border bg-card p-4 sm:p-6">
@@ -93,7 +86,6 @@ const QuickActionsCard = ({ companyId, onTripCreated }: QuickActionsCardProps) =
         isOpen={isNewScheduleOpen}
         companyId={companyId}
         onClose={() => setIsNewScheduleOpen(false)}
-        onCreated={handleTripCreated}
       />
     </div>
   );

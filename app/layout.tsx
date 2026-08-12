@@ -5,6 +5,7 @@ import { workSans, jetbrainsMono, bigShouldersDisplay } from "./fonts";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { AuthProvider } from "@/components/context/AuthContext";
+import ChatWidget from "@/components/chatbot/ChatWidget";
 
 export const metadata: Metadata = {
   title: "Bustix",
@@ -19,13 +20,14 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${workSans.variable} ${jetbrainsMono.variable} ${bigShouldersDisplay.variable} h-full antialiased`}
+      className={`${workSans.variable} ${jetbrainsMono.variable} ${bigShouldersDisplay.variable} h-full overflow-x-clip antialiased`}
     >
-      <body className="min-h-screen font-sans">
+      <body className="min-h-screen overflow-x-clip font-sans">
         <AuthProvider>
           <Navbar />
           {children}
           <Footer />
+          <ChatWidget />
           <Toaster
             position="top-right"
             closeButton

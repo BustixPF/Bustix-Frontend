@@ -27,6 +27,8 @@ export interface UserProfile {
   phone?: number;
   address?: string | null;
   role: string;
+  companyId?: string | null;
+  profilePicture?: string | null;
 }
 
 // La cookie httpOnly no se puede leer desde JS (a propósito, es lo que la hace
@@ -50,6 +52,7 @@ export const fetchCurrentUser = async (): Promise<UserProfile | null> => {
         phone: 0,
         address: null,
         role: session.role,
+        companyId: null,
       };
     }
   } catch {
@@ -68,18 +71,44 @@ export const logoutRequest = async (): Promise<void> => {
   }
 };
 
+export const deleteAccount = async (userId: string): Promise<void> => {
+  await api.delete(`/users/${userId}`);
+};
+
+export interface CompanyDocument {
+  id: string;
+  url: string;
+  filename: string;
+  mimetype: string;
+}
+
 export interface Company {
   id: string;
   name: string;
   nit: string;
   email: string;
+  phone?: string;
+  status?: "pending" | "approved" | "rejected";
+  rejectionReason?: string | null;
+  documents?: CompanyDocument[];
 }
 
-// TODO: quitar cuando el backend vincule un usuario "admin" con su empresa real.
-export const DEMO_COMPANY_ID = "dacee2cc-0f36-4aaf-a107-a19a57c92475";
-
-export const getDashboardPathForRole = (role: string): string =>
-  role === "admin" ? `/empresa/dashboard/${DEMO_COMPANY_ID}` : "/cliente/dashboard";
+// Admin sin companyId es un estado inconsistente (cuenta vieja o promovida
+// manualmente sin pasar por la aprobación de una solicitud de empresa) - no
+// hay a donde mandarlo, así que se devuelve null y el que llama decide cómo
+// avisarle en vez de asumir una empresa cualquiera.
+export const getDashboardPathForRole = (
+  role: string,
+  companyId?: string | null
+): string | null => {
+  if (role === "superAdmin") {
+    return "/superadmin/dashboard";
+  }
+  if (role === "admin") {
+    return companyId ? `/empresa/dashboard/${companyId}` : null;
+  }
+  return "/cliente/dashboard";
+};
 
 export const fetchCompany = async (companyId: string): Promise<Company | null> => {
   try {
@@ -90,6 +119,9 @@ export const fetchCompany = async (companyId: string): Promise<Company | null> =
   }
 };
 
+// GET /companies es publico y ahora solo devuelve empresas aprobadas (antes
+// devolvia todas, incluyendo pendientes/rechazadas - eso se cerro a proposito
+// para no filtrar solicitudes de empresa a cualquier visitante anonimo).
 export const fetchCompanies = async (): Promise<Company[]> => {
   try {
     const { data } = await api.get("/companies");
@@ -97,6 +129,42 @@ export const fetchCompanies = async (): Promise<Company[]> => {
   } catch {
     return [];
   }
+};
+
+// Solo trae companias en estado pending (con status/rejectionReason, sin
+// documentos) - requiere superAdmin o Admin.
+export const fetchPendingCompanies = async (): Promise<Company[]> => {
+  try {
+    const { data } = await api.get("/companies/pending");
+    return data;
+  } catch {
+    return [];
+  }
+};
+
+// Trae TODAS las companias con sus documentos (sin status/rejectionReason) -
+// requiere superAdmin. Se combina con fetchPendingCompanies() para armar la
+// lista de solicitudes pendientes con sus documentos adjuntos.
+export const fetchCompaniesWithDocuments = async (): Promise<Company[]> => {
+  try {
+    const { data } = await api.get("/dashboard/superadmin/companies");
+    return data;
+  } catch {
+    return [];
+  }
+};
+
+export const approveCompany = async (companyId: string): Promise<Company> => {
+  const { data } = await api.patch(`/companies/${companyId}/approve`);
+  return data;
+};
+
+export const rejectCompany = async (
+  companyId: string,
+  reason?: string
+): Promise<Company> => {
+  const { data } = await api.patch(`/companies/${companyId}/reject`, reason ? { reason } : {});
+  return data;
 };
 
 export interface ApiRoute {
@@ -127,6 +195,33 @@ export const uploadCompanyDocument = async (companyId: string, file: File) => {
   return data;
 };
 
+// El back ya lo implemento en un endpoint dedicado (distinto del que se
+// esperaba originalmente): sube a Cloudinary y guarda la URL en
+// User.profilePicture, devolviendo { message, profilePictureUrl }.
+export const uploadProfilePicture = async (
+  userId: string,
+  file: File
+): Promise<{ profilePicture: string }> => {
+  const formData = new FormData();
+  formData.append("file", file);
+  const { data } = await api.post(
+    `/file-upload/user/${userId}/profile-picture`,
+    formData,
+    { headers: { "Content-Type": undefined } }
+  );
+  return { profilePicture: data.profilePictureUrl };
+};
+
+export type TripStatus =
+  | "A_TIEMPO"
+  | "EMBARCANDO"
+  | "SALIO"
+  | "RETRASADO"
+  | "CANCELADO"
+  | "LLEGÓ"
+  | "EN_RUTA"
+  | "REPROGRAMADO";
+
 export interface ApiTrip {
   id: string;
   companyId: string;
@@ -135,6 +230,7 @@ export interface ApiTrip {
   departureDate: string;
   price: string;
   totalSeats: number;
+  status: TripStatus;
 }
 
 export interface ApiSeat {
@@ -162,17 +258,47 @@ export const fetchTripById = async (id: string): Promise<ApiTrip | null> => {
   }
 };
 
-export interface CreateTripPayload {
-  companyId: string;
-  origin: string;
-  destination: string;
+export type ManualTripStatus = "CANCELADO" | "RETRASADO" | "REPROGRAMADO";
+
+export const updateTripStatus = async (
+  tripId: string,
+  status: ManualTripStatus,
+  newDepartureDate?: string
+): Promise<ApiTrip> => {
+  const { data } = await api.patch(`/trips/${tripId}/status`, {
+    status,
+    ...(newDepartureDate ? { newDepartureDate } : {}),
+  });
+  return data;
+};
+
+export interface RequestSchedulePayload {
+  routeId: number;
   departureDate: string;
   price: number;
   totalSeats: number;
 }
 
-export const createTrip = async (payload: CreateTripPayload): Promise<ApiTrip> => {
-  const { data } = await api.post("/trips", payload);
+export interface ScheduleRequestResponse {
+  id: string;
+  companyId: string;
+  routeId: number;
+  origin: string;
+  destination: string;
+  departureDate: string;
+  price: number;
+  totalSeats: number;
+  status: "pending" | "accepted" | "rejected";
+  createdTripId?: string;
+}
+
+// Ya no se puede crear un Trip directo desde el dashboard de empresa
+// (POST /trips quedo restringido a superAdmin) - esto crea una solicitud
+
+export const requestSchedule = async (
+  payload: RequestSchedulePayload
+): Promise<ScheduleRequestResponse> => {
+  const { data } = await api.post("/dashboard/admin/schedules", payload);
   return data;
 };
 
@@ -217,6 +343,12 @@ export interface ApiTicket {
   price: number;
   purchaseDate: string;
   company: { id: string; name: string } | null;
+  // Requiere el fix de backend pendiente (Ticket -> Trip): si el backend
+  // todavia no lo manda, estos campos llegan undefined y el front cae al
+  // estado vacio.
+  tripId?: string | null;
+  seatNumber?: number | null;
+  departureDate?: string | null;
 }
 
 export const fetchMyTickets = async (): Promise<ApiTicket[]> => {
@@ -238,8 +370,7 @@ export interface ApiSale {
   company: { id: string; name: string } | null;
 }
 
-// El backend todavía no filtra este historial por empresa (devuelve las
-// ventas de todas las empresas) — hay que filtrar por companyId en el cliente.
+// El backend ya filtra este historial por la empresa del Admin autenticado.
 export const fetchSalesHistory = async (): Promise<ApiSale[]> => {
   try {
     const { data } = await api.get("/dashboard/admin/sales-history");
@@ -247,4 +378,261 @@ export const fetchSalesHistory = async (): Promise<ApiSale[]> => {
   } catch {
     return [];
   }
+};
+
+// Ventas de TODA la plataforma, sin filtrar por empresa - requiere superAdmin.
+export const fetchGlobalSales = async (): Promise<ApiSale[]> => {
+  try {
+    const { data } = await api.get("/dashboard/superadmin/sales");
+    return data;
+  } catch {
+    return [];
+  }
+};
+
+export interface AdminMetrics {
+  overview: {
+    totalIncome: number;
+    totalPaidTransactions: number;
+    totalTicketsSold: number;
+    activeCompanies: number;
+    totalUsers: number;
+  };
+  charts: {
+    salesOverTime: { date: string; total: number; count: number }[];
+    topRoutes: { route: string; ticketsSold: number }[];
+  };
+}
+
+// Metricas globales de la plataforma (no filtran por empresa, ni siquiera
+// cuando las consulta un Admin) - solo tiene sentido para el dashboard de
+// superAdmin.
+export const fetchAdminMetrics = async (): Promise<AdminMetrics | null> => {
+  try {
+    const { data } = await api.get("/admin/metrics");
+    return data;
+  } catch {
+    return null;
+  }
+};
+
+export interface RequestedByUser {
+  id: string;
+  name: string;
+  email: string;
+}
+
+export type RequestStatus = "pending" | "accepted" | "rejected";
+
+export interface RouteRequestItem {
+  id: string;
+  type: "add" | "delete";
+  origin?: string;
+  destination?: string;
+  stops?: string[];
+  duration?: number;
+  price?: number;
+  companyId?: string;
+  routeId?: string;
+  status: RequestStatus;
+  message?: string;
+  requestedBy: RequestedByUser | null;
+}
+
+// GET ya filtra por status "pending" del lado del backend.
+export const fetchRouteRequests = async (): Promise<RouteRequestItem[]> => {
+  try {
+    const { data } = await api.get("/dashboard/superadmin/route-requests");
+    return data;
+  } catch {
+    return [];
+  }
+};
+
+export const respondRouteRequest = async (
+  id: string,
+  status: "accepted" | "rejected",
+  message?: string
+): Promise<RouteRequestItem> => {
+  const { data } = await api.post(`/dashboard/superadmin/route-requests/${id}/respond`, {
+    status,
+    ...(message ? { message } : {}),
+  });
+  return data;
+};
+
+export interface ScheduleRequestItem {
+  id: string;
+  companyId: string;
+  routeId: number;
+  origin: string;
+  destination: string;
+  departureDate: string;
+  price: number;
+  totalSeats: number;
+  status: RequestStatus;
+  createdTripId?: string;
+  message?: string;
+  requestedBy: RequestedByUser;
+}
+
+// GET ya filtra por status "pending" del lado del backend.
+export const fetchScheduleRequests = async (): Promise<ScheduleRequestItem[]> => {
+  try {
+    const { data } = await api.get("/dashboard/superadmin/schedule-requests");
+    return data;
+  } catch {
+    return [];
+  }
+};
+
+export const respondScheduleRequest = async (
+  id: string,
+  status: "accepted" | "rejected",
+  message?: string
+): Promise<ScheduleRequestItem> => {
+  const { data } = await api.post(`/dashboard/superadmin/schedule-requests/${id}/respond`, {
+    status,
+    ...(message ? { message } : {}),
+  });
+  return data;
+};
+
+export interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
+// El backend no guarda historial - el cliente manda el historial previo en
+// cada request para que el asistente tenga contexto de la conversación.
+export const sendChatMessage = async (
+  message: string,
+  history: ChatMessage[]
+): Promise<string> => {
+  const { data } = await api.post("/chatbot/message", { message, history });
+  return data.reply;
+};
+
+export type UserRole = "user" | "admin" | "superAdmin";
+
+export interface AdminUser {
+  id: string;
+  name: string;
+  email: string;
+  dni?: number | string | null;
+  phone?: number | string | null;
+  address?: string | null;
+  role: UserRole;
+  companyId?: string | null;
+  profilePicture?: string | null;
+}
+
+// Requiere superAdmin. El backend pagina con page/limit, sin busqueda server-side.
+export const fetchUsers = async (page = 1, limit = 15): Promise<AdminUser[]> => {
+  try {
+    const { data } = await api.get(`/users?page=${page}&limit=${limit}`);
+    return data;
+  } catch {
+    return [];
+  }
+};
+
+export const changeUserRole = async (userId: string, role: UserRole): Promise<AdminUser> => {
+  const { data } = await api.patch(`/dashboard/superadmin/users/${userId}/role`, { role });
+  return data;
+};
+
+export interface DashboardSummary {
+  companyCount: number;
+  ticketCount: number;
+  pendingCompanyRequests: number;
+  pendingRouteRequests: number;
+  pendingScheduleRequests: number;
+}
+
+export const fetchDashboardSummary = async (): Promise<DashboardSummary | null> => {
+  try {
+    const { data } = await api.get("/dashboard/summary");
+    return data;
+  } catch {
+    return null;
+  }
+};
+
+export interface ApiPaymentDetail {
+  id: string;
+  amount: number;
+  currency: string;
+  status: "pending" | "paid" | "failed" | "canceled" | "refunded";
+  description?: string | null;
+  tripId?: string | null;
+  createdAt: string;
+  user?: { id: string; name: string; email: string } | null;
+}
+
+export const fetchPaymentById = async (paymentId: string): Promise<ApiPaymentDetail | null> => {
+  try {
+    const { data } = await api.get(`/payments/${paymentId}`);
+    return data;
+  } catch {
+    return null;
+  }
+};
+
+export const refundPayment = async (paymentId: string): Promise<ApiPaymentDetail> => {
+  const { data } = await api.post(`/payments/${paymentId}/refund`);
+  return data;
+};
+
+export interface SuperAdminPendingSummary {
+  companies: number;
+  routes: number;
+  schedules: number;
+}
+
+// No existe un endpoint de notificaciones para superAdmin - se arma
+// contando las 3 listas de solicitudes pendientes que ya usa el dashboard.
+export const fetchSuperAdminPendingSummary = async (): Promise<SuperAdminPendingSummary> => {
+  const [companies, routes, schedules] = await Promise.all([
+    fetchPendingCompanies(),
+    fetchRouteRequests(),
+    fetchScheduleRequests(),
+  ]);
+  return {
+    companies: companies.length,
+    routes: routes.length,
+    schedules: schedules.length,
+  };
+};
+
+export interface HealthCheckDetail {
+  status: "up" | "down";
+  message?: string;
+}
+
+export interface SystemHealth {
+  status: "ok" | "error" | "shutting_down";
+  details: Record<string, HealthCheckDetail>;
+}
+
+// Terminus responde 200 si todo esta "up" pero 503 si algo esta "down" - en
+// ambos casos el body trae el detalle de cada check, asi que hay que leerlo
+// tambien del error de axios (no solo del caso feliz).
+export const fetchSystemHealth = async (): Promise<SystemHealth | null> => {
+  try {
+    const { data } = await api.get("/dashboard/superadmin/health");
+    return data;
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.data?.details) {
+      return error.response.data;
+    }
+    return null;
+  }
+};
+
+// Fuerza role:"admin" en el usuario elegido sin validar si ya era admin de
+// otra empresa - el picker del front filtra superAdmins para evitar una
+// degradacion accidental de esa cuenta.
+export const assignCompanyAdmin = async (companyId: string, userId: string): Promise<void> => {
+  await api.patch(`/companies/${companyId}/assign-admin`, { userId });
 };

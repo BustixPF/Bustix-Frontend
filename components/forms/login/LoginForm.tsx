@@ -51,7 +51,15 @@ const LoginForm = () => {
           return;
         }
 
-        router.push(getDashboardPathForRole(profile.role));
+        const destination = getDashboardPathForRole(profile.role, profile.companyId);
+        if (!destination) {
+          toast.error("Tu cuenta no tiene una empresa asociada", {
+            description: "Contacta a soporte para vincular tu cuenta a una empresa.",
+          });
+          router.push("/");
+          return;
+        }
+        router.push(destination);
       } catch (error) {
         toast.error("No se pudo iniciar sesión", {
           description: getApiErrorMessage(error, "Revisa tus credenciales e intenta de nuevo"),
