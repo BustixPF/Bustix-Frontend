@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import {
   fetchCompaniesWithDocuments,
   fetchCompanies,
+  fetchPendingCompanies,
   fetchUsers,
   assignCompanyAdmin,
   updateCompanyActive,
@@ -13,6 +14,18 @@ import {
 } from "@/lib/api";
 import AssignAdminModal from "./AssignAdminModal";
 import ConfirmModal from "@/components/ConfirmModal";
+
+const STATUS_LABEL: Record<NonNullable<Company["status"]>, string> = {
+  approved: "Aprobada",
+  pending: "Pendiente",
+  rejected: "Rechazada",
+};
+
+const STATUS_BADGE_CLASSES: Record<NonNullable<Company["status"]>, string> = {
+  approved: "bg-success/15 text-success",
+  pending: "bg-secondary/15 text-secondary",
+  rejected: "bg-destructive/15 text-destructive",
+};
 
 const AssignAdminCard = () => {
   const [companies, setCompanies] = useState<Company[] | null>(null);
@@ -27,20 +40,28 @@ const AssignAdminCard = () => {
     let cancelled = false;
 
     (async () => {
-      // /dashboard/superadmin/companies trae TODAS las empresas (incluye
-      // pendientes) pero sin isActive; /companies es publico y solo trae
-      // aprobadas, pero con isActive - se cruzan por id para tener ambas cosas.
-      const [companiesResult, usersResult, approvedResult] = await Promise.all([
+      // /dashboard/superadmin/companies trae TODAS las empresas (con
+      // documentos) pero sin status/isActive; /companies (aprobadas) y
+      // /companies/pending si tienen esos campos - se cruzan por id. Lo que
+      // no aparece en ninguna de las dos quedo rechazado (es el unico
+      // estado que ningun endpoint devuelve directo).
+      const [companiesResult, usersResult, approvedResult, pendingResult] = await Promise.all([
         fetchCompaniesWithDocuments(),
         fetchUsers(1, 100),
         fetchCompanies(),
+        fetchPendingCompanies(),
       ]);
       if (cancelled) return;
       const activeById = new Map(approvedResult.map((c) => [c.id, c.isActive ?? true]));
+      const statusById = new Map<string, NonNullable<Company["status"]>>([
+        ...approvedResult.map((c): [string, "approved"] => [c.id, "approved"]),
+        ...pendingResult.map((c): [string, "pending"] => [c.id, "pending"]),
+      ]);
       setCompanies(
         companiesResult.map((company) => ({
           ...company,
           isActive: activeById.get(company.id) ?? true,
+          status: statusById.get(company.id) ?? "rejected",
         }))
       );
       setUsers(usersResult);
@@ -111,9 +132,9 @@ const AssignAdminCard = () => {
     <div className="rounded-2xl border border-border bg-card p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h3 className="font-display text-lg text-card-foreground">Administradores de empresa</h3>
+          <h3 className="font-display text-lg text-card-foreground">Empresas</h3>
           <p className="mt-1 text-sm text-muted-foreground">
-            Vincula o reasigna qué usuario administra cada empresa.
+            Estado de cada empresa, y quién la administra.
           </p>
         </div>
         <input
@@ -144,8 +165,15 @@ const AssignAdminCard = () => {
                   className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border p-3"
                 >
                   <div className="min-w-0">
-                    <p className="flex items-center gap-2 text-sm font-medium text-card-foreground">
+                    <p className="flex flex-wrap items-center gap-2 text-sm font-medium text-card-foreground">
                       {company.name}
+                      {company.status && (
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-[10.5px] font-bold ${STATUS_BADGE_CLASSES[company.status]}`}
+                        >
+                          {STATUS_LABEL[company.status]}
+                        </span>
+                      )}
                       {company.isActive === false && (
                         <span className="rounded-full bg-destructive/15 px-2 py-0.5 text-[10.5px] font-bold text-destructive">
                           Desactivada
