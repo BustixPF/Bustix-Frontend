@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { api, fetchRoutes, getApiErrorMessage, type ApiRoute } from "@/lib/api";
 import { formatCOP } from "@/data/home";
+import ConfirmModal from "@/components/ConfirmModal";
 
 interface CompanyRoutesCardProps {
   companyId: string;
@@ -18,6 +19,7 @@ const CompanyRoutesCard = ({ companyId }: CompanyRoutesCardProps) => {
   const [routes, setRoutes] = useState<ApiRoute[] | null>(null);
   const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
   const [requestedIds, setRequestedIds] = useState<Set<string>>(new Set());
+  const [confirmTarget, setConfirmTarget] = useState<ApiRoute | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -90,7 +92,7 @@ const CompanyRoutesCard = ({ companyId }: CompanyRoutesCardProps) => {
                       <button
                         type="button"
                         disabled={isPending || isRequested}
-                        onClick={() => handleDeleteRequest(route.id)}
+                        onClick={() => setConfirmTarget(route)}
                         className="rounded-full border border-destructive px-3 py-1.5 text-xs font-bold text-destructive transition-colors hover:bg-destructive/10 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         {isRequested ? "Solicitado" : isPending ? "Enviando..." : "Solicitar eliminación"}
@@ -102,6 +104,22 @@ const CompanyRoutesCard = ({ companyId }: CompanyRoutesCardProps) => {
             </tbody>
           </table>
         </div>
+      )}
+
+      {confirmTarget && (
+        <ConfirmModal
+          title="¿Estás seguro de que deseas solicitar la eliminación de esta ruta?"
+          message={`${confirmTarget.origin} → ${confirmTarget.destination}`}
+          confirmLabel="Confirmar"
+          destructive
+          isSubmitting={pendingIds.has(confirmTarget.id)}
+          onConfirm={() => {
+            const route = confirmTarget;
+            setConfirmTarget(null);
+            handleDeleteRequest(route.id);
+          }}
+          onClose={() => setConfirmTarget(null)}
+        />
       )}
     </div>
   );

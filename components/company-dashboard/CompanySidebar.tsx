@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import MobileDrawer from "@/components/MobileDrawer";
 import LogoutConfirmModal from "@/components/LogoutConfirmModal";
+import Avatar from "@/components/Avatar";
 import { useAuth } from "@/components/context/AuthContext";
 import type { Company } from "@/lib/api";
 
@@ -32,9 +33,10 @@ interface CompanySidebarProps {
 const CompanySidebar = ({ companyId, company }: CompanySidebarProps) => {
   const pathname = usePathname();
   const router = useRouter();
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
+  const [activeItem, setActiveItem] = useState("Panel");
 
   const dashboardHref = `/empresa/dashboard/${companyId}`;
   const navItems = [
@@ -42,7 +44,17 @@ const CompanySidebar = ({ companyId, company }: CompanySidebarProps) => {
     { label: "Rutas", href: `${dashboardHref}#rutas` },
     { label: "Horarios", href: `${dashboardHref}#horarios` },
     { label: "Reservas", href: `${dashboardHref}#reservas` },
+    { label: "Perfil", href: `${dashboardHref}/perfil` },
   ];
+
+  const resolveHashTarget = (href: string) => {
+    const hash = href.split("#")[1];
+    if (!hash) return;
+    const target = document.getElementById(hash);
+    if (target) {
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
 
   const closeMenu = () => setIsOpen(false);
 
@@ -58,12 +70,20 @@ const CompanySidebar = ({ companyId, company }: CompanySidebarProps) => {
     <>
       <nav className="flex flex-col gap-1">
         {navItems.map((item) => {
-          const isActive = item.href === pathname;
+          const isActive = activeItem === item.label;
           return (
             <Link
               key={item.label}
               href={item.href}
-              onClick={closeMenu}
+              onClick={(event) => {
+                closeMenu();
+                setActiveItem(item.label);
+                const hash = item.href.split("#")[1];
+                if (hash) {
+                  event.preventDefault();
+                  resolveHashTarget(item.href);
+                }
+              }}
               className={`flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm transition-colors ${
                 isActive
                   ? "border-l-4 border-primary bg-card font-bold text-foreground"
@@ -93,9 +113,15 @@ const CompanySidebar = ({ companyId, company }: CompanySidebarProps) => {
 
       <div className="mt-auto border-t border-border pt-6">
         <div className="flex items-center gap-3">
-          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
-            {company.initials}
-          </span>
+          {/* Mismo bloque de identidad de antes (nombre de la empresa +
+              "Admin de empresa"); solo se reemplazó el círculo de iniciales
+              por <Avatar> para que la foto de perfil del administrador
+              (subida desde /perfil) se refleje aquí también. */}
+          <Avatar
+            src={user?.profilePicture}
+            name={company.name}
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground"
+          />
           <div>
             <p className="text-sm text-foreground">{company.name}</p>
             <p className="text-xs text-muted-foreground">Admin de empresa</p>
