@@ -16,6 +16,15 @@ const CloseIcon = () => (
   </svg>
 );
 
+// Fecha local de hoy en formato "YYYY-MM-DD" (sin pasar por UTC, para que no
+// se corra un día según la zona horaria del navegador).
+const getTodayLocalDate = () => {
+  const now = new Date();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${now.getFullYear()}-${month}-${day}`;
+};
+
 const NewScheduleModal = ({ isOpen, companyId, onClose }: NewScheduleModalProps) => {
   const [routes, setRoutes] = useState<ApiRoute[] | null>(null);
   const [selectedRouteId, setSelectedRouteId] = useState("");
@@ -144,6 +153,7 @@ const NewScheduleModal = ({ isOpen, companyId, onClose }: NewScheduleModalProps)
               <input
                 type="datetime-local"
                 required
+                min={`${getTodayLocalDate()}T00:00`}
                 value={departureDate}
                 onChange={(event) => setDepartureDate(event.target.value)}
                 className="mt-1.5 w-full rounded-lg border border-border bg-muted px-4 py-2.5 text-sm text-card-foreground outline-none focus:border-primary"

@@ -8,12 +8,14 @@ import {
   type RouteRequestItem,
 } from "@/lib/api";
 import RejectRequestModal from "./RejectRequestModal";
+import ConfirmModal from "@/components/ConfirmModal";
 
 const RouteRequestsCard = () => {
   const [requests, setRequests] = useState<RouteRequestItem[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [pendingActionId, setPendingActionId] = useState<string | null>(null);
   const [rejectTarget, setRejectTarget] = useState<RouteRequestItem | null>(null);
+  const [deleteApproveTarget, setDeleteApproveTarget] = useState<RouteRequestItem | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -120,7 +122,9 @@ const RouteRequestsCard = () => {
                 <div className="flex gap-2">
                   <button
                     type="button"
-                    onClick={() => handleApprove(request)}
+                    onClick={() =>
+                      request.type === "delete" ? setDeleteApproveTarget(request) : handleApprove(request)
+                    }
                     disabled={pendingActionId === request.id}
                     className="rounded-full bg-primary px-4 py-2 text-xs font-bold text-primary-foreground transition-colors hover:bg-accent hover:text-accent-foreground disabled:opacity-60"
                   >
@@ -154,10 +158,30 @@ const RouteRequestsCard = () => {
       {rejectTarget && (
         <RejectRequestModal
           title="Rechazar solicitud de ruta"
-          description="Puedes dejar un motivo (opcional) para la empresa."
+          description="Puedes dejar un motivo del por qué rechazas la solicitud de eliminación (opcional) para la empresa."
           isSubmitting={pendingActionId === rejectTarget.id}
           onConfirm={handleReject}
           onClose={() => setRejectTarget(null)}
+        />
+      )}
+
+      {deleteApproveTarget && (
+        <ConfirmModal
+          title="¿Estás seguro de que deseas eliminar esta ruta?"
+          message={
+            deleteApproveTarget.origin && deleteApproveTarget.destination
+              ? `${deleteApproveTarget.origin} → ${deleteApproveTarget.destination}. Esta acción no se puede deshacer.`
+              : "Esta acción no se puede deshacer."
+          }
+          confirmLabel="Confirmar"
+          destructive
+          isSubmitting={pendingActionId === deleteApproveTarget.id}
+          onConfirm={() => {
+            const request = deleteApproveTarget;
+            setDeleteApproveTarget(null);
+            handleApprove(request);
+          }}
+          onClose={() => setDeleteApproveTarget(null)}
         />
       )}
     </div>
