@@ -1,5 +1,6 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
+import useSWR, { mutate } from "swr";
 import { toast } from "sonner";
 import {
   fetchPendingCompanies,
@@ -9,7 +10,19 @@ import {
   getApiErrorMessage,
   type Company,
 } from "@/lib/api";
+import { SWR_KEYS } from "@/lib/swrKeys";
 import RejectCompanyModal from "./RejectCompanyModal";
+
+// Se invalida despues de aprobar/rechazar para que todo lo que dependa de
+// esto en otras cards (conteos del sidebar, resumen, campana del navbar) se
+// refresque solo, sin recargar la pagina.
+const invalidateAfterDecision = () => {
+  mutate(SWR_KEYS.pendingCompanies);
+  mutate(SWR_KEYS.companiesWithDocuments);
+  mutate(SWR_KEYS.approvedCompanies);
+  mutate(SWR_KEYS.dashboardSummary);
+  mutate(SWR_KEYS.superAdminPendingSummary);
+};
 
 const DocumentIcon = () => (
   <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -19,43 +32,28 @@ const DocumentIcon = () => (
 );
 
 const CompanyRequestsCard = () => {
-  const [companies, setCompanies] = useState<Company[] | null>(null);
   const [pendingActionId, setPendingActionId] = useState<string | null>(null);
   const [rejectTarget, setRejectTarget] = useState<Company | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
+  // /companies/pending trae status pero no documentos; el endpoint de
+  // superAdmin trae documentos pero no status - se combinan por id.
+  const { data: pending } = useSWR(SWR_KEYS.pendingCompanies, fetchPendingCompanies);
+  const { data: withDocuments } = useSWR(SWR_KEYS.companiesWithDocuments, fetchCompaniesWithDocuments);
 
-    (async () => {
-      // /companies/pending trae status pero no documentos; el endpoint de
-      // superAdmin trae documentos pero no status - se combinan por id.
-      const [pending, withDocuments] = await Promise.all([
-        fetchPendingCompanies(),
-        fetchCompaniesWithDocuments(),
-      ]);
-      if (cancelled) return;
-
-      const documentsById = new Map(
-        withDocuments.map((company) => [company.id, company.documents ?? []])
-      );
-      setCompanies(
-        pending.map((company) => ({
-          ...company,
-          documents: documentsById.get(company.id) ?? [],
-        }))
-      );
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const companies = useMemo<Company[] | null>(() => {
+    if (!pending || !withDocuments) return null;
+    const documentsById = new Map(withDocuments.map((company) => [company.id, company.documents ?? []]));
+    return pending.map((company) => ({
+      ...company,
+      documents: documentsById.get(company.id) ?? [],
+    }));
+  }, [pending, withDocuments]);
 
   const handleApprove = async (company: Company) => {
     setPendingActionId(company.id);
     try {
       await approveCompany(company.id);
-      setCompanies((prev) => (prev ?? []).filter((c) => c.id !== company.id));
+      invalidateAfterDecision();
       toast.success(`${company.name} fue aprobada`);
     } catch (error) {
       toast.error("No se pudo aprobar la empresa", {
@@ -71,7 +69,7 @@ const CompanyRequestsCard = () => {
     setPendingActionId(rejectTarget.id);
     try {
       await rejectCompany(rejectTarget.id, reason || undefined);
-      setCompanies((prev) => (prev ?? []).filter((c) => c.id !== rejectTarget.id));
+      invalidateAfterDecision();
       toast.success(`${rejectTarget.name} fue rechazada`);
       setRejectTarget(null);
     } catch (error) {

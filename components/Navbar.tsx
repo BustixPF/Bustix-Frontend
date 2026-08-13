@@ -1,9 +1,11 @@
 "use client";
 import { useEffect, useRef, useState } from 'react'
+import useSWR from 'swr'
 import Link from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
 import { useAuth } from '@/components/context/AuthContext'
 import { getDashboardPathForRole, fetchMyTickets, fetchSuperAdminPendingSummary } from '@/lib/api'
+import { SWR_KEYS } from '@/lib/swrKeys'
 import MobileDrawer from '@/components/MobileDrawer'
 import LogoutConfirmModal from '@/components/LogoutConfirmModal'
 import NotificationsDropdown from '@/components/NotificationsDropdown'
@@ -81,22 +83,26 @@ const Navbar = () => {
   const NOTIFICATIONS_LAST_SEEN_KEY = 'bustix_notifications_last_seen'
 
   const isSuperAdmin = user?.role === 'superAdmin'
+  // El admin de empresa no compra tiquetes (el dropdown de cliente no le
+  // sirve) y todavia no hay forma de avisarle sobre aprobaciones de ruta/
+  // horario - se le oculta la campana entera hasta que eso exista.
+  const isCompanyAdmin = user?.role === 'admin'
+
+  // El superAdmin no compra tiquetes - para el, "no leido" es que haya
+  // solicitudes pendientes, no una compra nueva. Misma clave que usan las
+  // cards del dashboard, asi que al aprobar/rechazar algo ahi la campanita
+  // se actualiza sola, sin recargar la pagina.
+  const { data: pendingSummary } = useSWR(
+    isSuperAdmin ? SWR_KEYS.superAdminPendingSummary : null,
+    fetchSuperAdminPendingSummary
+  )
+  const hasUnread = isSuperAdmin
+    ? Boolean(pendingSummary && pendingSummary.companies + pendingSummary.routes + pendingSummary.schedules > 0)
+    : hasUnreadNotifications
 
   useEffect(() => {
-    if (!user) return
+    if (!user || isCompanyAdmin || isSuperAdmin) return
     let cancelled = false
-
-    // El superAdmin no compra tiquetes - para el, "no leido" es que haya
-    // solicitudes pendientes, no una compra nueva.
-    if (isSuperAdmin) {
-      fetchSuperAdminPendingSummary().then((summary) => {
-        if (cancelled) return
-        setHasUnreadNotifications(summary.companies + summary.routes + summary.schedules > 0)
-      })
-      return () => {
-        cancelled = true
-      }
-    }
 
     fetchMyTickets().then((tickets) => {
       if (cancelled) return
@@ -114,7 +120,7 @@ const Navbar = () => {
     return () => {
       cancelled = true
     }
-  }, [user, isSuperAdmin])
+  }, [user, isSuperAdmin, isCompanyAdmin])
 
   const handleToggleNotifications = () => {
     setIsNotificationsOpen((prev) => {
@@ -176,26 +182,28 @@ const Navbar = () => {
 
       {user ? (
         <>
-          <div ref={notificationsRef} className="relative">
-            <button
-              type="button"
-              aria-label="Notificaciones"
-              aria-expanded={isNotificationsOpen}
-              onClick={handleToggleNotifications}
-              className="relative flex h-9 w-9 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:border-primary hover:text-foreground"
-            >
-              <BellIcon />
-              {user && hasUnreadNotifications && (
-                <span className="absolute right-2 top-1.5 h-2 w-2 rounded-full bg-accent" />
-              )}
-            </button>
+          {!isCompanyAdmin && (
+            <div ref={notificationsRef} className="relative">
+              <button
+                type="button"
+                aria-label="Notificaciones"
+                aria-expanded={isNotificationsOpen}
+                onClick={handleToggleNotifications}
+                className="relative flex h-9 w-9 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:border-primary hover:text-foreground"
+              >
+                <BellIcon />
+                {user && hasUnread && (
+                  <span className="absolute right-2 top-1.5 h-2 w-2 rounded-full bg-accent" />
+                )}
+              </button>
 
-            {isNotificationsOpen && (
-              <div className="absolute right-0 top-full z-50 mt-2">
-                {isSuperAdmin ? <SuperAdminNotificationsDropdown /> : <NotificationsDropdown />}
-              </div>
-            )}
-          </div>
+              {isNotificationsOpen && (
+                <div className="absolute right-0 top-full z-50 mt-2">
+                  {isSuperAdmin ? <SuperAdminNotificationsDropdown /> : <NotificationsDropdown />}
+                </div>
+              )}
+            </div>
+          )}
 
           <Link
             href={getDashboardPathForRole(user.role, user.companyId) ?? '/'}
@@ -230,6 +238,86 @@ const Navbar = () => {
     </>
   )
 
+  // El drawer mobile es vertical y de ancho fijo (260px) - reusar "links" tal
+  // cual (pensado para un nav horizontal compacto) dejaba la campanita como
+  // un circulo huerfano sin relacion visual con el resto. Cada item aca es
+  // una fila de ancho completo, consistente entre si.
+  const mobileMenuItemClass =
+    "rounded-lg px-3 py-2.5 text-sm font-bold text-foreground transition-colors hover:bg-card"
+
+  const mobileMenu = (
+    <div className="flex flex-col gap-1">
+      <Link href="/" onClick={closeMenu} className={mobileMenuItemClass}>
+        Inicio
+      </Link>
+      {!user && (
+        <Link href="/#como-funciona" onClick={closeMenu} className={mobileMenuItemClass}>
+          Como funciona
+        </Link>
+      )}
+
+      {user ? (
+        <>
+          {!isCompanyAdmin && (
+            <div>
+              <button
+                type="button"
+                aria-label="Notificaciones"
+                aria-expanded={isNotificationsOpen}
+                onClick={handleToggleNotifications}
+                className={`flex w-full items-center justify-between ${mobileMenuItemClass}`}
+              >
+                <span className="flex items-center gap-2">
+                  <BellIcon />
+                  Notificaciones
+                </span>
+                {hasUnread && (
+                  <span className="h-2 w-2 shrink-0 rounded-full bg-accent" />
+                )}
+              </button>
+
+              {isNotificationsOpen && (
+                <div className="mt-2 px-1 [&>div]:w-full">
+                  {isSuperAdmin ? <SuperAdminNotificationsDropdown /> : <NotificationsDropdown />}
+                </div>
+              )}
+            </div>
+          )}
+
+          <Link
+            href={getDashboardPathForRole(user.role, user.companyId) ?? '/'}
+            onClick={closeMenu}
+            className={mobileMenuItemClass}
+          >
+            Hola, {user.name}
+          </Link>
+
+          <button
+            type="button"
+            onClick={() => setIsLogoutConfirmOpen(true)}
+            className="mt-2 rounded-full bg-primary py-2.5 text-sm font-bold text-primary-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+          >
+            Cerrar sesión
+          </button>
+        </>
+      ) : (
+        <>
+          <Link href="/auth/login" onClick={closeMenu} className={mobileMenuItemClass}>
+            Iniciar sesión
+          </Link>
+
+          <Link
+            href="/auth/register"
+            onClick={closeMenu}
+            className="mt-2 rounded-full bg-primary py-2.5 text-center text-sm font-bold text-primary-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+          >
+            Registrarse
+          </Link>
+        </>
+      )}
+    </div>
+  )
+
   return (
     <nav className="bustix-dark flex items-center justify-between bg-background px-4 py-4 sm:px-8">
       <div className="flex items-center gap-2">
@@ -251,7 +339,7 @@ const Navbar = () => {
       </button>
 
       <MobileDrawer isOpen={isMenuOpen} onClose={closeMenu}>
-        <ul className="flex flex-col gap-3">{links}</ul>
+        {mobileMenu}
       </MobileDrawer>
 
       {isLogoutConfirmOpen && (

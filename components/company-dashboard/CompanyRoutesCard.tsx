@@ -1,8 +1,11 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import useSWR from "swr";
 import { toast } from "sonner";
 import { api, fetchRoutes, getApiErrorMessage, type ApiRoute } from "@/lib/api";
+import { SWR_KEYS } from "@/lib/swrKeys";
 import { formatCOP } from "@/data/home";
+import ConfirmModal from "@/components/ConfirmModal";
 
 interface CompanyRoutesCardProps {
   companyId: string;
@@ -15,21 +18,11 @@ const formatDuration = (minutes: number) => {
 };
 
 const CompanyRoutesCard = ({ companyId }: CompanyRoutesCardProps) => {
-  const [routes, setRoutes] = useState<ApiRoute[] | null>(null);
+  const { data: allRoutes } = useSWR(SWR_KEYS.routes, fetchRoutes);
+  const routes = allRoutes?.filter((route) => route.companyId === companyId) ?? null;
   const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
   const [requestedIds, setRequestedIds] = useState<Set<string>>(new Set());
-
-  useEffect(() => {
-    let cancelled = false;
-    fetchRoutes().then((allRoutes) => {
-      if (!cancelled) {
-        setRoutes(allRoutes.filter((route) => route.companyId === companyId));
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [companyId]);
+  const [confirmTarget, setConfirmTarget] = useState<ApiRoute | null>(null);
 
   const handleDeleteRequest = async (routeId: string) => {
     setPendingIds((prev) => new Set(prev).add(routeId));
@@ -90,7 +83,7 @@ const CompanyRoutesCard = ({ companyId }: CompanyRoutesCardProps) => {
                       <button
                         type="button"
                         disabled={isPending || isRequested}
-                        onClick={() => handleDeleteRequest(route.id)}
+                        onClick={() => setConfirmTarget(route)}
                         className="rounded-full border border-destructive px-3 py-1.5 text-xs font-bold text-destructive transition-colors hover:bg-destructive/10 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         {isRequested ? "Solicitado" : isPending ? "Enviando..." : "Solicitar eliminación"}
@@ -102,6 +95,22 @@ const CompanyRoutesCard = ({ companyId }: CompanyRoutesCardProps) => {
             </tbody>
           </table>
         </div>
+      )}
+
+      {confirmTarget && (
+        <ConfirmModal
+          title="¿Estás seguro de que deseas solicitar la eliminación de esta ruta?"
+          message={`${confirmTarget.origin} → ${confirmTarget.destination}`}
+          confirmLabel="Confirmar"
+          destructive
+          isSubmitting={pendingIds.has(confirmTarget.id)}
+          onConfirm={() => {
+            const route = confirmTarget;
+            setConfirmTarget(null);
+            handleDeleteRequest(route.id);
+          }}
+          onClose={() => setConfirmTarget(null)}
+        />
       )}
     </div>
   );

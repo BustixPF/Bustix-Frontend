@@ -1,40 +1,83 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
+import useSWR, { mutate } from "swr";
 import { toast } from "sonner";
 import {
   fetchCompaniesWithDocuments,
+  fetchCompanies,
+  fetchPendingCompanies,
   fetchUsers,
   assignCompanyAdmin,
+  updateCompanyActive,
   getApiErrorMessage,
   type Company,
-  type AdminUser,
 } from "@/lib/api";
+import { SWR_KEYS } from "@/lib/swrKeys";
 import AssignAdminModal from "./AssignAdminModal";
+import ConfirmModal from "@/components/ConfirmModal";
+
+const STATUS_LABEL: Record<NonNullable<Company["status"]>, string> = {
+  approved: "Aprobada",
+  pending: "Pendiente",
+  rejected: "Rechazada",
+};
+
+const STATUS_BADGE_CLASSES: Record<NonNullable<Company["status"]>, string> = {
+  approved: "bg-success/15 text-success",
+  pending: "bg-secondary/15 text-secondary",
+  rejected: "bg-destructive/15 text-destructive",
+};
 
 const AssignAdminCard = () => {
-  const [companies, setCompanies] = useState<Company[] | null>(null);
-  const [users, setUsers] = useState<AdminUser[]>([]);
   const [search, setSearch] = useState("");
   const [target, setTarget] = useState<Company | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [activeTarget, setActiveTarget] = useState<Company | null>(null);
+  const [isTogglingActive, setIsTogglingActive] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
+  // /dashboard/superadmin/companies trae TODAS las empresas (con
+  // documentos) pero sin status/isActive; /companies (aprobadas) y
+  // /companies/pending si tienen esos campos - se cruzan por id. Lo que
+  // no aparece en ninguna de las dos quedo rechazado (es el unico
+  // estado que ningun endpoint devuelve directo).
+  const { data: companiesResult } = useSWR(SWR_KEYS.companiesWithDocuments, fetchCompaniesWithDocuments);
+  const { data: usersResult } = useSWR(SWR_KEYS.adminUsers, () => fetchUsers(1, 100));
+  const { data: approvedResult } = useSWR(SWR_KEYS.approvedCompanies, fetchCompanies);
+  const { data: pendingResult } = useSWR(SWR_KEYS.pendingCompanies, fetchPendingCompanies);
+  const users = usersResult ?? [];
 
-    (async () => {
-      const [companiesResult, usersResult] = await Promise.all([
-        fetchCompaniesWithDocuments(),
-        fetchUsers(1, 100),
-      ]);
-      if (cancelled) return;
-      setCompanies(companiesResult);
-      setUsers(usersResult);
-    })();
+  const companies = useMemo<Company[] | null>(() => {
+    if (!companiesResult || !approvedResult || !pendingResult) return null;
+    const activeById = new Map(approvedResult.map((c) => [c.id, c.isActive ?? true]));
+    const statusById = new Map<string, NonNullable<Company["status"]>>([
+      ...approvedResult.map((c): [string, "approved"] => [c.id, "approved"]),
+      ...pendingResult.map((c): [string, "pending"] => [c.id, "pending"]),
+    ]);
+    return companiesResult.map((company) => ({
+      ...company,
+      isActive: activeById.get(company.id) ?? true,
+      status: statusById.get(company.id) ?? "rejected",
+    }));
+  }, [companiesResult, approvedResult, pendingResult]);
 
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const handleToggleActive = async () => {
+    if (!activeTarget) return;
+    const nextActive = !(activeTarget.isActive ?? true);
+    setIsTogglingActive(true);
+    try {
+      const updated = await updateCompanyActive(activeTarget.id, nextActive);
+      mutate(SWR_KEYS.approvedCompanies);
+      mutate(SWR_KEYS.companiesWithDocuments);
+      toast.success(nextActive ? `${updated.name} fue reactivada` : `${updated.name} fue desactivada`);
+      setActiveTarget(null);
+    } catch (error) {
+      toast.error("No se pudo cambiar el estado", {
+        description: getApiErrorMessage(error, "Intenta de nuevo en unos minutos"),
+      });
+    } finally {
+      setIsTogglingActive(false);
+    }
+  };
 
   // No hay endpoint que devuelva "el admin de la empresa X" directo - se
   // infiere cruzando la lista de usuarios por companyId + role admin.
@@ -48,11 +91,7 @@ const AssignAdminCard = () => {
     try {
       await assignCompanyAdmin(target.id, userId);
       const assignedUser = users.find((user) => user.id === userId);
-      setUsers((prev) =>
-        prev.map((user) =>
-          user.id === userId ? { ...user, role: "admin", companyId: target.id } : user
-        )
-      );
+      mutate(SWR_KEYS.adminUsers);
       toast.success(
         assignedUser ? `${assignedUser.name} ahora administra ${target.name}` : "Administrador asignado"
       );
@@ -76,9 +115,9 @@ const AssignAdminCard = () => {
     <div className="rounded-2xl border border-border bg-card p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h3 className="font-display text-lg text-card-foreground">Administradores de empresa</h3>
+          <h3 className="font-display text-lg text-card-foreground">Empresas</h3>
           <p className="mt-1 text-sm text-muted-foreground">
-            Vincula o reasigna qué usuario administra cada empresa.
+            Estado de cada empresa, y quién la administra.
           </p>
         </div>
         <input
@@ -109,18 +148,43 @@ const AssignAdminCard = () => {
                   className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border p-3"
                 >
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-card-foreground">{company.name}</p>
+                    <p className="flex flex-wrap items-center gap-2 text-sm font-medium text-card-foreground">
+                      {company.name}
+                      {company.status && (
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-[10.5px] font-bold ${STATUS_BADGE_CLASSES[company.status]}`}
+                        >
+                          {STATUS_LABEL[company.status]}
+                        </span>
+                      )}
+                      {company.isActive === false && (
+                        <span className="rounded-full bg-destructive/15 px-2 py-0.5 text-[10.5px] font-bold text-destructive">
+                          Desactivada
+                        </span>
+                      )}
+                    </p>
                     <p className="truncate text-xs text-muted-foreground">
                       {admin ? `Admin: ${admin.name} (${admin.email})` : "Sin administrador asignado"}
                     </p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setTarget(company)}
-                    className="shrink-0 text-xs font-bold text-accent hover:underline"
-                  >
-                    {admin ? "Reasignar admin" : "Asignar admin"}
-                  </button>
+                  <div className="flex shrink-0 items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setTarget(company)}
+                      className="text-xs font-bold text-accent hover:underline"
+                    >
+                      {admin ? "Reasignar admin" : "Asignar admin"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTarget(company)}
+                      className={`text-xs font-bold hover:underline ${
+                        company.isActive === false ? "text-success" : "text-destructive"
+                      }`}
+                    >
+                      {company.isActive === false ? "Reactivar" : "Desactivar"}
+                    </button>
+                  </div>
                 </div>
               );
             })}
@@ -135,6 +199,22 @@ const AssignAdminCard = () => {
           isSubmitting={isSubmitting}
           onConfirm={handleAssign}
           onClose={() => setTarget(null)}
+        />
+      )}
+
+      {activeTarget && (
+        <ConfirmModal
+          title={activeTarget.isActive === false ? "¿Reactivar empresa?" : "¿Desactivar empresa?"}
+          message={
+            activeTarget.isActive === false
+              ? `${activeTarget.name} y sus administradores van a recuperar el acceso.`
+              : `${activeTarget.name} y todos sus administradores van a perder el acceso hasta que la reactives.`
+          }
+          confirmLabel={activeTarget.isActive === false ? "Reactivar" : "Desactivar"}
+          destructive={activeTarget.isActive !== false}
+          isSubmitting={isTogglingActive}
+          onConfirm={handleToggleActive}
+          onClose={() => setActiveTarget(null)}
         />
       )}
     </div>

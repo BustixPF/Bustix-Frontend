@@ -18,7 +18,7 @@ export const companyRegisterValidationSchema = Yup.object({
     .max(150, "Máximo 150 caracteres")
     .required("Nombre de la empresa obligatorio"),
   nit: Yup.string()
-    .matches(/^(\d{1,3}(\.\d{3}){0,3}|\d{4,10})(-\d)?$/, "Formato de NIT inválido (solo números, puntos y guión)")
+    .matches(/^(\d{1,3}(\.\d{3}){0,3}|\d{4,10})(-\d)?$/, "Formato de NIT inválido")
     .min(8, "Mínimo 8 caracteres")
     .max(17, "Máximo 17 caracteres")
     .required("NIT obligatorio"),

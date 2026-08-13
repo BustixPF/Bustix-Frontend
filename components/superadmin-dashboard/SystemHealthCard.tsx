@@ -1,6 +1,8 @@
 "use client";
-import { useEffect, useState } from "react";
-import { fetchSystemHealth, type SystemHealth } from "@/lib/api";
+import { useState } from "react";
+import useSWR from "swr";
+import { fetchSystemHealth } from "@/lib/api";
+import { SWR_KEYS } from "@/lib/swrKeys";
 
 const CHECK_LABELS: Record<string, string> = {
   database: "Base de datos",
@@ -10,29 +12,13 @@ const CHECK_LABELS: Record<string, string> = {
 };
 
 const SystemHealthCard = () => {
-  const [health, setHealth] = useState<SystemHealth | null>(null);
   const [checkedAt, setCheckedAt] = useState<Date | null>(null);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [refreshToken, setRefreshToken] = useState(0);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    (async () => {
-      setIsRefreshing(true);
-      const result = await fetchSystemHealth();
-      if (cancelled) return;
-      setHealth(result);
-      setCheckedAt(new Date());
-      setIsRefreshing(false);
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [refreshToken]);
-
-  const load = () => setRefreshToken((t) => t + 1);
+  // onSuccess corre apenas SWR termina un fetch (inicial o manual via
+  // refresh()) - a diferencia de un useEffect, no dispara el warning de
+  // "setState dentro de un effect" porque es un callback, no una reaccion.
+  const { data: health, mutate: refresh, isValidating } = useSWR(SWR_KEYS.systemHealth, fetchSystemHealth, {
+    onSuccess: () => setCheckedAt(new Date()),
+  });
 
   const entries = health ? Object.entries(health.details) : [];
 
@@ -47,15 +33,15 @@ const SystemHealthCard = () => {
         </div>
         <button
           type="button"
-          onClick={load}
-          disabled={isRefreshing}
+          onClick={() => refresh()}
+          disabled={isValidating}
           className="rounded-full border border-border px-4 py-2 text-xs font-semibold text-card-foreground transition-colors hover:border-primary disabled:opacity-60"
         >
-          {isRefreshing ? "Revisando..." : "Actualizar"}
+          {isValidating ? "Revisando..." : "Actualizar"}
         </button>
       </div>
 
-      {health === null ? (
+      {health === undefined ? (
         <div className="mt-4 grid gap-2 sm:grid-cols-2">
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="h-12 animate-pulse rounded-xl border border-border bg-muted" />

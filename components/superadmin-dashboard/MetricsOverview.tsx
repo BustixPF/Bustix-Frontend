@@ -1,33 +1,17 @@
 "use client";
-import { useEffect, useState } from "react";
-import { fetchAdminMetrics, fetchDashboardSummary, type AdminMetrics } from "@/lib/api";
+import useSWR from "swr";
+import { fetchAdminMetrics, fetchDashboardSummary } from "@/lib/api";
 import { formatCOP } from "@/data/home";
+import { SWR_KEYS } from "@/lib/swrKeys";
 
 const MetricsOverview = () => {
-  const [metrics, setMetrics] = useState<AdminMetrics | null>(null);
-  const [companyCount, setCompanyCount] = useState<number | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    (async () => {
-      setIsLoading(true);
-      const [metricsResult, summary] = await Promise.all([
-        fetchAdminMetrics(),
-        fetchDashboardSummary(),
-      ]);
-      if (!cancelled) {
-        setMetrics(metricsResult);
-        setCompanyCount(summary?.companyCount ?? null);
-        setIsLoading(false);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const { data: metrics, isLoading: isLoadingMetrics } = useSWR("admin-metrics", fetchAdminMetrics);
+  const { data: summary, isLoading: isLoadingSummary } = useSWR(
+    SWR_KEYS.dashboardSummary,
+    fetchDashboardSummary
+  );
+  const companyCount = summary?.companyCount ?? null;
+  const isLoading = isLoadingMetrics || isLoadingSummary;
 
   if (isLoading) {
     return (

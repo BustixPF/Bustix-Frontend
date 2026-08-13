@@ -1,6 +1,7 @@
 "use client";
-import { useEffect, useState } from "react";
+import useSWR from "swr";
 import { fetchMyTickets, type ApiTicket } from "@/lib/api";
+import { SWR_KEYS } from "@/lib/swrKeys";
 import { formatCOP } from "@/data/home";
 
 interface Kpi {
@@ -37,19 +38,10 @@ const buildKpis = (tickets: ApiTicket[]): Kpi[] => {
 };
 
 const KpiRow = () => {
-  const [kpis, setKpis] = useState<Kpi[] | null>(null);
+  const { data: tickets } = useSWR(SWR_KEYS.myTickets, fetchMyTickets);
 
-  useEffect(() => {
-    let cancelled = false;
-    fetchMyTickets().then((tickets) => {
-      if (!cancelled) setKpis(buildKpis(tickets));
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  if (!kpis) return null;
+  if (!tickets) return null;
+  const kpis = buildKpis(tickets);
 
   return (
     <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">

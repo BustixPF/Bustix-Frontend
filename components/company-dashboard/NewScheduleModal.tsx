@@ -1,7 +1,9 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import useSWR from "swr";
 import { toast } from "sonner";
-import { requestSchedule, fetchRoutes, getApiErrorMessage, type ApiRoute } from "@/lib/api";
+import { requestSchedule, fetchRoutes, getApiErrorMessage } from "@/lib/api";
+import { SWR_KEYS } from "@/lib/swrKeys";
 
 interface NewScheduleModalProps {
   isOpen: boolean;
@@ -16,37 +18,39 @@ const CloseIcon = () => (
   </svg>
 );
 
+// Fecha local de hoy en formato "YYYY-MM-DD" (sin pasar por UTC, para que no
+// se corra un día según la zona horaria del navegador).
+const getTodayLocalDate = () => {
+  const now = new Date();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${now.getFullYear()}-${month}-${day}`;
+};
+
 const NewScheduleModal = ({ isOpen, companyId, onClose }: NewScheduleModalProps) => {
-  const [routes, setRoutes] = useState<ApiRoute[] | null>(null);
   const [selectedRouteId, setSelectedRouteId] = useState("");
   const [departureDate, setDepartureDate] = useState("");
   const [price, setPrice] = useState("");
   const [totalSeats, setTotalSeats] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    if (!isOpen) return;
-    let cancelled = false;
-
-    fetchRoutes().then((allRoutes) => {
-      if (cancelled) return;
-      const companyRoutes = allRoutes.filter((route) => route.companyId === companyId);
-      setRoutes(companyRoutes);
-      if (companyRoutes.length > 0) {
+  const { data: allRoutes } = useSWR(isOpen ? SWR_KEYS.routes : null, fetchRoutes, {
+    onSuccess: (result) => {
+      const companyRoutes = result.filter((route) => route.companyId === companyId);
+      // Solo se completa el default la primera vez que hay datos - si el
+      // usuario ya eligio una ruta, una revalidacion en segundo plano no se
+      // la debe pisar.
+      if (companyRoutes.length > 0 && !selectedRouteId) {
         setSelectedRouteId(String(companyRoutes[0].id));
         setPrice(companyRoutes[0].price);
       }
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [isOpen, companyId]);
+    },
+  });
+  const routes = allRoutes ? allRoutes.filter((route) => route.companyId === companyId) : null;
 
   if (!isOpen) return null;
 
   const reset = () => {
-    setRoutes(null);
     setSelectedRouteId("");
     setDepartureDate("");
     setPrice("");
@@ -144,6 +148,7 @@ const NewScheduleModal = ({ isOpen, companyId, onClose }: NewScheduleModalProps)
               <input
                 type="datetime-local"
                 required
+                min={`${getTodayLocalDate()}T00:00`}
                 value={departureDate}
                 onChange={(event) => setDepartureDate(event.target.value)}
                 className="mt-1.5 w-full rounded-lg border border-border bg-muted px-4 py-2.5 text-sm text-card-foreground outline-none focus:border-primary"

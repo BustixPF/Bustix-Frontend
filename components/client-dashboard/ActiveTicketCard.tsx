@@ -1,21 +1,17 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import useSWR from "swr";
 import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
 import { fetchMyTickets, type ApiTicket } from "@/lib/api";
+import { SWR_KEYS } from "@/lib/swrKeys";
 import {
   getTripById,
   formatDateLabel,
   seatPositionLabel,
   toLocalDateISO,
-  type Trip,
 } from "@/data/viajes";
 import QrCodeModal from "@/components/client-dashboard/QrCodeModal";
-
-interface ActiveTicket {
-  trip: Trip;
-  seatNumber: number | null;
-}
 
 const EmptyState = () => (
   <div className="rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-6 md:p-8">
@@ -52,37 +48,15 @@ const findUpcomingTicket = (tickets: ApiTicket[]): ApiTicket | null => {
 };
 
 const ActiveTicketCard = () => {
-  const [isLoading, setIsLoading] = useState(true);
-  const [active, setActive] = useState<ActiveTicket | null>(null);
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
+  const { data: tickets } = useSWR(SWR_KEYS.myTickets, fetchMyTickets);
+  const upcomingTicket = tickets ? findUpcomingTicket(tickets) : null;
+  const { data: trip } = useSWR(
+    upcomingTicket?.tripId ? ["active-ticket-trip", upcomingTicket.tripId] : null,
+    () => getTripById(upcomingTicket!.tripId!)
+  );
 
-  useEffect(() => {
-    let cancelled = false;
-
-    (async () => {
-      setIsLoading(true);
-      const tickets = await fetchMyTickets();
-      const upcomingTicket = findUpcomingTicket(tickets);
-
-      if (!upcomingTicket?.tripId) {
-        if (!cancelled) {
-          setActive(null);
-          setIsLoading(false);
-        }
-        return;
-      }
-
-      const trip = await getTripById(upcomingTicket.tripId);
-      if (!cancelled) {
-        setActive(trip ? { trip, seatNumber: upcomingTicket.seatNumber ?? null } : null);
-        setIsLoading(false);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const isLoading = tickets === undefined || (Boolean(upcomingTicket?.tripId) && trip === undefined);
 
   if (isLoading) {
     return (
@@ -93,11 +67,11 @@ const ActiveTicketCard = () => {
     );
   }
 
-  if (!active) {
+  if (!trip) {
     return <EmptyState />;
   }
 
-  const { trip, seatNumber } = active;
+  const seatNumber = upcomingTicket?.seatNumber ?? null;
 
   return (
     <div className="rounded-2xl bg-card p-4 shadow-sm sm:p-6 md:p-8">

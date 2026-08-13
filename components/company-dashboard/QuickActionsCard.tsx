@@ -1,5 +1,7 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import useSWR from "swr";
 import { fetchTrips, fetchAvailableSeats } from "@/lib/api";
+import { SWR_KEYS } from "@/lib/swrKeys";
 import NewRouteModal from "@/components/company-dashboard/NewRouteModal";
 import NewScheduleModal from "@/components/company-dashboard/NewScheduleModal";
 
@@ -10,18 +12,14 @@ interface QuickActionsCardProps {
 const QuickActionsCard = ({ companyId }: QuickActionsCardProps) => {
   const [isNewRouteOpen, setIsNewRouteOpen] = useState(false);
   const [isNewScheduleOpen, setIsNewScheduleOpen] = useState(false);
-  const [occupancyAverage, setOccupancyAverage] = useState<number | null>(null);
+  const { data: trips } = useSWR(SWR_KEYS.trips, fetchTrips);
+  const companyTrips = (trips ?? []).filter((trip) => trip.companyId === companyId);
+  const companyTripIds = companyTrips.map((trip) => trip.id).join(",");
 
-  useEffect(() => {
-    let cancelled = false;
-
-    fetchTrips().then(async (trips) => {
-      const companyTrips = trips.filter((trip) => trip.companyId === companyId);
-      if (companyTrips.length === 0) {
-        if (!cancelled) setOccupancyAverage(0);
-        return;
-      }
-
+  const { data: occupancyAverage } = useSWR(
+    trips ? ["company-occupancy", companyTripIds] : null,
+    async () => {
+      if (companyTrips.length === 0) return 0;
       const rates = await Promise.all(
         companyTrips.map(async (trip) => {
           const availableSeats = await fetchAvailableSeats(trip.id);
@@ -29,17 +27,10 @@ const QuickActionsCard = ({ companyId }: QuickActionsCardProps) => {
           return trip.totalSeats > 0 ? sold / trip.totalSeats : 0;
         })
       );
-
-      if (!cancelled) {
-        const average = rates.reduce((sum, rate) => sum + rate, 0) / rates.length;
-        setOccupancyAverage(Math.round(average * 100));
-      }
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [companyId]);
+      const average = rates.reduce((sum, rate) => sum + rate, 0) / rates.length;
+      return Math.round(average * 100);
+    }
+  );
 
   return (
     <div className="rounded-2xl border border-border bg-card p-4 sm:p-6">
@@ -62,16 +53,18 @@ const QuickActionsCard = ({ companyId }: QuickActionsCardProps) => {
         </button>
         <button
           type="button"
-          className="rounded-lg border border-border py-3 text-sm font-bold text-card-foreground transition-colors hover:border-primary"
+          disabled
+          title="Todavía no está disponible"
+          className="cursor-not-allowed rounded-lg border border-border py-3 text-sm font-bold text-muted-foreground opacity-50"
         >
-          Exportar reporte (.csv)
+          Exportar reporte (.csv) · Próximamente
         </button>
       </div>
 
       <div className="mt-6 flex items-center justify-between text-xs text-muted-foreground">
         <p>Ocupación promedio</p>
         <p className="font-display text-sm text-card-foreground">
-          {occupancyAverage === null ? "—" : `${occupancyAverage}%`}
+          {occupancyAverage === undefined ? "—" : `${occupancyAverage}%`}
         </p>
       </div>
       <div className="mt-2 h-2.5 w-full rounded-full bg-muted">

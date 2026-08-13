@@ -2,19 +2,15 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import CompanySidebar from "@/components/company-dashboard/CompanySidebar";
-import CompanyTopBar from "@/components/company-dashboard/CompanyTopBar";
-import CompanyKpiRow from "@/components/company-dashboard/CompanyKpiRow";
-import QuickActionsCard from "@/components/company-dashboard/QuickActionsCard";
-import UpcomingDeparturesBoard from "@/components/company-dashboard/UpcomingDeparturesBoard";
-import RecentBookingsCard from "@/components/company-dashboard/RecentBookingsCard";
-import CompanyRoutesCard from "@/components/company-dashboard/CompanyRoutesCard";
+import EditCompanyForm from "@/components/forms/profile/EditCompanyForm";
+import ChangePasswordForm from "@/components/forms/profile/ChangePasswordForm";
 import RequireRole from "@/components/auth/RequireRole";
 import LoadingScreen from "@/components/LoadingScreen";
 import { fetchCompany, type Company } from "@/lib/api";
 import { getInitials } from "@/lib/user";
 import { useAuth } from "@/components/context/AuthContext";
 
-function CompanyDashboardContent() {
+function CompanyProfileContent() {
   const { companyId } = useParams<{ companyId: string }>();
   const router = useRouter();
   const { user } = useAuth();
@@ -67,33 +63,33 @@ function CompanyDashboardContent() {
         }}
       />
 
-      <main className="min-w-0 flex-1 px-4 py-6 sm:px-6 sm:py-8 md:px-10 md:py-10">
-        <CompanyTopBar company={{ name: company.name }} />
-        <CompanyKpiRow companyId={companyId} />
-
-        <div id="horarios" className="mt-6 scroll-mt-6">
-          <UpcomingDeparturesBoard companyId={companyId} />
+      <main className="min-w-0 flex-1 px-6 py-8 md:px-10 md:py-10">
+        <div className="mx-auto max-w-lg text-center">
+          <h1 className="font-display text-3xl text-foreground">Perfil de la empresa</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Actualiza los datos de contacto y facturación de {company.name}.
+          </p>
         </div>
+        <div className="mx-auto mt-6 max-w-lg border-t border-border" />
 
-        <div id="rutas" className="mt-6 scroll-mt-6">
-          <CompanyRoutesCard companyId={companyId} />
-        </div>
+        <EditCompanyForm company={company} onUpdated={setCompany} />
 
-        <div className="mt-6 grid min-w-0 gap-6 xl:grid-cols-[1fr_380px]">
-          <div id="reservas" className="min-w-0 scroll-mt-6">
-            <RecentBookingsCard companyId={companyId} />
-          </div>
-          <QuickActionsCard companyId={companyId} />
+        <div className="mx-auto mt-8 max-w-lg border-t border-border pt-6 text-center">
+          <p className="text-sm font-bold text-card-foreground">Cambiar contraseña</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Esta es la contraseña con la que iniciás sesión, no la de la empresa.
+          </p>
         </div>
+        <ChangePasswordForm />
       </main>
     </div>
   );
 }
 
-export default function CompanyDashboardPage() {
+export default function CompanyProfilePage() {
   return (
     <RequireRole allowedRoles={["admin"]}>
-      <CompanyDashboardContent />
+      <CompanyProfileContent />
     </RequireRole>
   );
 }

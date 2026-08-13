@@ -4,7 +4,13 @@ import { useRouter } from "next/navigation";
 import { useFormik } from "formik";
 import { toast } from "sonner";
 import EyeIcon from "@/components/forms/register/EyeIcon";
-import { api, getApiErrorMessage, uploadProfilePicture, deleteAccount } from "@/lib/api";
+import {
+  api,
+  getApiErrorMessage,
+  uploadProfilePicture,
+  deleteAccount,
+  getDashboardPathForRole,
+} from "@/lib/api";
 import { useAuth } from "@/components/context/AuthContext";
 import { getInitials } from "@/lib/user";
 import {
@@ -78,7 +84,9 @@ const EditProfileForm = () => {
         toast.success("Perfil actualizado", {
           description: "Tus datos se guardaron correctamente.",
         });
-        router.push("/cliente/dashboard");
+        // Cada rol vuelve a su propio dashboard (antes quedaba fijo en el
+        // del pasajero, lo cual rompía el flujo para admin/superAdmin).
+        router.push(getDashboardPathForRole(user.role, user.companyId) ?? "/");
       } catch (error) {
         toast.error("No se pudo actualizar el perfil", {
           description: getApiErrorMessage(error, "Intenta de nuevo en unos minutos"),
@@ -92,7 +100,7 @@ const EditProfileForm = () => {
   if (!user) return null;
 
   return (
-    <form onSubmit={formik.handleSubmit} noValidate className="mt-6 max-w-lg">
+    <form onSubmit={formik.handleSubmit} noValidate className="mx-auto mt-6 max-w-lg">
       <div className="flex items-center gap-4">
         <span className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full bg-secondary text-xl font-bold text-secondary-foreground">
           {user.profilePicture ? (
@@ -143,18 +151,23 @@ const EditProfileForm = () => {
         )}
       </label>
 
-      <label className="mt-4 block">
-        <span className="font-mono-label text-xs uppercase text-muted-foreground">
-          DNI
-        </span>
-        <input
-          type="text"
-          value={user.dni ?? ""}
-          disabled
-          className="mt-1.5 w-full cursor-not-allowed rounded-lg border border-border bg-muted px-4 py-2.5 text-sm text-muted-foreground outline-none"
-        />
-        <p className="mt-1 text-xs text-muted-foreground">El DNI no se puede modificar.</p>
-      </label>
+      {/* El DNI solo aplica a pasajeros (se pide en su registro para emitir
+          tickets); los administradores de empresa no lo tienen, así que no
+          tiene sentido mostrar el campo vacío para ellos. */}
+      {user.dni ? (
+        <label className="mt-4 block">
+          <span className="font-mono-label text-xs uppercase text-muted-foreground">
+            DNI
+          </span>
+          <input
+            type="text"
+            value={user.dni}
+            disabled
+            className="mt-1.5 w-full cursor-not-allowed rounded-lg border border-border bg-muted px-4 py-2.5 text-sm text-muted-foreground outline-none"
+          />
+          <p className="mt-1 text-xs text-muted-foreground">El DNI no se puede modificar.</p>
+        </label>
+      ) : null}
 
       <label className="mt-4 block">
         <span className="font-mono-label text-xs uppercase text-muted-foreground">
