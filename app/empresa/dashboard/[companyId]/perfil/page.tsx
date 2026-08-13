@@ -2,7 +2,8 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import CompanySidebar from "@/components/company-dashboard/CompanySidebar";
-import EditProfileForm from "@/components/forms/profile/EditProfileForm";
+import EditCompanyForm from "@/components/forms/profile/EditCompanyForm";
+import ChangePasswordForm from "@/components/forms/profile/ChangePasswordForm";
 import RequireRole from "@/components/auth/RequireRole";
 import LoadingScreen from "@/components/LoadingScreen";
 import { fetchCompany, type Company } from "@/lib/api";
@@ -63,13 +64,23 @@ function CompanyProfileContent() {
       />
 
       <main className="min-w-0 flex-1 px-6 py-8 md:px-10 md:py-10">
-        <h1 className="font-display text-3xl text-foreground">Editar perfil</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Actualiza los datos personales del administrador de la empresa.
-        </p>
-        <div className="mt-6 border-t border-border" />
+        <div className="mx-auto max-w-lg text-center">
+          <h1 className="font-display text-3xl text-foreground">Perfil de la empresa</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Actualiza los datos de contacto y facturación de {company.name}.
+          </p>
+        </div>
+        <div className="mx-auto mt-6 max-w-lg border-t border-border" />
 
-        <EditProfileForm />
+        <EditCompanyForm company={company} onUpdated={setCompany} />
+
+        <div className="mx-auto mt-8 max-w-lg border-t border-border pt-6 text-center">
+          <p className="text-sm font-bold text-card-foreground">Cambiar contraseña</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Esta es la contraseña con la que iniciás sesión, no la de la empresa.
+          </p>
+        </div>
+        <ChangePasswordForm />
       </main>
     </div>
   );

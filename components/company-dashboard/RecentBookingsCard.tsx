@@ -1,6 +1,7 @@
 "use client";
-import { useEffect, useState } from "react";
-import { fetchSalesHistory, type ApiSale } from "@/lib/api";
+import useSWR from "swr";
+import { fetchSalesHistory } from "@/lib/api";
+import { SWR_KEYS } from "@/lib/swrKeys";
 import { formatCOP } from "@/data/home";
 
 interface RecentBookingsCardProps {
@@ -11,25 +12,14 @@ const formatPurchaseDate = (iso: string) =>
   new Date(iso).toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "numeric" });
 
 const RecentBookingsCard = ({ companyId }: RecentBookingsCardProps) => {
-  const [sales, setSales] = useState<ApiSale[] | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    fetchSalesHistory().then((allSales) => {
-      if (!cancelled) {
-        setSales(allSales.filter((sale) => sale.company?.id === companyId));
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [companyId]);
+  const { data: allSales } = useSWR(SWR_KEYS.salesHistory, fetchSalesHistory);
+  const sales = allSales?.filter((sale) => sale.company?.id === companyId);
 
   return (
     <div className="rounded-2xl border border-border bg-card p-4 sm:p-6">
       <h2 className="font-display text-lg text-card-foreground">Reservas recientes</h2>
 
-      {sales === null ? (
+      {sales === undefined ? (
         <p className="mt-4 text-sm text-muted-foreground">Cargando…</p>
       ) : sales.length === 0 ? (
         <p className="mt-4 text-sm text-muted-foreground">Todavía no tienes reservas.</p>

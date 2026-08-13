@@ -1,5 +1,6 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import useSWR, { mutate } from "swr";
 import { toast } from "sonner";
 import {
   fetchRouteRequests,
@@ -7,44 +8,29 @@ import {
   getApiErrorMessage,
   type RouteRequestItem,
 } from "@/lib/api";
+import { SWR_KEYS } from "@/lib/swrKeys";
 import RejectRequestModal from "./RejectRequestModal";
 import ConfirmModal from "@/components/ConfirmModal";
 
+// fetchRouteRequests ya devuelve [] si falla (no relanza el error), asi que
+// no hace falta un estado de error separado aca.
+const invalidate = () => {
+  mutate(SWR_KEYS.routeRequests);
+  mutate(SWR_KEYS.dashboardSummary);
+  mutate(SWR_KEYS.superAdminPendingSummary);
+};
+
 const RouteRequestsCard = () => {
-  const [requests, setRequests] = useState<RouteRequestItem[] | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const { data: requests } = useSWR(SWR_KEYS.routeRequests, fetchRouteRequests);
   const [pendingActionId, setPendingActionId] = useState<string | null>(null);
   const [rejectTarget, setRejectTarget] = useState<RouteRequestItem | null>(null);
   const [deleteApproveTarget, setDeleteApproveTarget] = useState<RouteRequestItem | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    (async () => {
-      try {
-        const all = await fetchRouteRequests();
-        if (!cancelled) {
-          setRequests(all);
-          setLoadError(null);
-        }
-      } catch (error) {
-        if (!cancelled) {
-          setRequests([]);
-          setLoadError(getApiErrorMessage(error, "No se pudieron cargar las solicitudes de rutas"));
-        }
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const handleApprove = async (request: RouteRequestItem) => {
     setPendingActionId(request.id);
     try {
       await respondRouteRequest(request.id, "accepted");
-      setRequests((prev) => (prev ?? []).filter((r) => r.id !== request.id));
+      invalidate();
       toast.success("Solicitud de ruta aprobada");
     } catch (error) {
       toast.error("No se pudo aprobar la solicitud", {
@@ -60,7 +46,7 @@ const RouteRequestsCard = () => {
     setPendingActionId(rejectTarget.id);
     try {
       await respondRouteRequest(rejectTarget.id, "rejected", reason || undefined);
-      setRequests((prev) => (prev ?? []).filter((r) => r.id !== rejectTarget.id));
+      invalidate();
       toast.success("Solicitud de ruta rechazada");
       setRejectTarget(null);
     } catch (error) {
@@ -76,7 +62,7 @@ const RouteRequestsCard = () => {
     <div className="rounded-2xl border border-border bg-card p-6">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h3 className="font-display text-lg text-card-foreground">Solicitudes de rutas</h3>
-        {requests !== null && requests.length > 0 && (
+        {requests !== undefined && requests.length > 0 && (
           <span className="font-mono-label text-xs text-muted-foreground">
             {requests.length} pendiente{requests.length === 1 ? "" : "s"}
           </span>
@@ -86,14 +72,12 @@ const RouteRequestsCard = () => {
         Rutas nuevas o eliminaciones de ruta solicitadas por empresas.
       </p>
 
-      {requests === null ? (
+      {requests === undefined ? (
         <div className="mt-4 flex flex-col gap-3">
           {Array.from({ length: 2 }).map((_, i) => (
             <div key={i} className="h-24 animate-pulse rounded-xl border border-border bg-muted" />
           ))}
         </div>
-      ) : loadError ? (
-        <p className="mt-4 text-sm text-destructive">{loadError}</p>
       ) : requests.length === 0 ? (
         <p className="mt-4 text-sm text-muted-foreground">No hay solicitudes pendientes.</p>
       ) : (

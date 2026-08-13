@@ -41,7 +41,11 @@ const SeatMap = ({ totalSeats, availableSeatNumbers, selectedSeatNumbers, onTogg
       <div className="mt-6 w-full overflow-x-auto">
         <div className="mx-auto flex w-fit flex-col gap-3 sm:gap-4">
           {rows.map((rowSeats, rowIndex) => {
-            const half = Math.ceil(rowSeats.length / 2);
+            // Siempre se llenan primero los 2 puestos de la izquierda del
+            // pasillo - con Math.ceil(length/2), una fila parcial de 2
+            // asientos quedaba 1 y 1, separados por el hueco del pasillo en
+            // vez de sentados juntos.
+            const half = Math.min(SEATS_PER_ROW / 2, rowSeats.length);
             const leftSeats = rowSeats.slice(0, half);
             const rightSeats = rowSeats.slice(half);
 

@@ -100,7 +100,7 @@ const EditProfileForm = () => {
   if (!user) return null;
 
   return (
-    <form onSubmit={formik.handleSubmit} noValidate className="mt-6 max-w-lg">
+    <form onSubmit={formik.handleSubmit} noValidate className="mx-auto mt-6 max-w-lg">
       <div className="flex items-center gap-4">
         <span className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full bg-secondary text-xl font-bold text-secondary-foreground">
           {user.profilePicture ? (

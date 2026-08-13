@@ -1,5 +1,6 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import useSWR, { mutate } from "swr";
 import { toast } from "sonner";
 import {
   fetchTrips,
@@ -9,6 +10,7 @@ import {
   type ApiTrip,
   type ManualTripStatus,
 } from "@/lib/api";
+import { SWR_KEYS } from "@/lib/swrKeys";
 import { formatTime, formatDateLabel, toLocalDateISO } from "@/data/viajes";
 import { TRIP_STATUS_LABEL, TRIP_STATUS_BADGE_CLASSES } from "@/lib/tripStatus";
 import TripStatusModal from "./TripStatusModal";
@@ -35,22 +37,21 @@ interface UpcomingDeparturesBoardProps {
 }
 
 const UpcomingDeparturesBoard = ({ companyId }: UpcomingDeparturesBoardProps) => {
-  const [departures, setDepartures] = useState<Departure[] | null>(null);
-  const [refreshKey, setRefreshKey] = useState(0);
   const [target, setTarget] = useState<Departure | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
+  const { data: trips } = useSWR(SWR_KEYS.trips, fetchTrips);
+  const now = new Date();
+  const upcoming = (trips ?? [])
+    .filter((trip) => trip.companyId === companyId && new Date(trip.departureDate) > now)
+    .sort((a, b) => new Date(a.departureDate).getTime() - new Date(b.departureDate).getTime())
+    .slice(0, MAX_DEPARTURES);
+  const upcomingIds = upcoming.map((trip) => trip.id).join(",");
 
-    fetchTrips().then(async (trips) => {
-      const now = new Date();
-      const upcoming = trips
-        .filter((trip) => trip.companyId === companyId && new Date(trip.departureDate) > now)
-        .sort((a, b) => new Date(a.departureDate).getTime() - new Date(b.departureDate).getTime())
-        .slice(0, MAX_DEPARTURES);
-
-      const withOccupancy = await Promise.all(
+  const { data: departures, mutate: refreshDepartures } = useSWR(
+    trips ? ["upcoming-departures", companyId, upcomingIds] : null,
+    () =>
+      Promise.all(
         upcoming.map(async (trip) => ({
           id: trip.id,
           route: `${trip.origin} → ${trip.destination}`,
@@ -59,15 +60,8 @@ const UpcomingDeparturesBoard = ({ companyId }: UpcomingDeparturesBoardProps) =>
           occupancy: await buildOccupancy(trip),
           status: trip.status,
         }))
-      );
-
-      if (!cancelled) setDepartures(withOccupancy);
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [companyId, refreshKey]);
+      )
+  );
 
   const handleConfirm = async (status: ManualTripStatus, newDepartureDate?: string) => {
     if (!target) return;
@@ -76,7 +70,11 @@ const UpcomingDeparturesBoard = ({ companyId }: UpcomingDeparturesBoardProps) =>
       await updateTripStatus(target.id, status, newDepartureDate);
       toast.success(`Viaje actualizado a "${TRIP_STATUS_LABEL[status]}"`);
       setTarget(null);
-      setRefreshKey((k) => k + 1);
+      // "trips" es la lista compartida (CompanyKpiRow/QuickActionsCard
+      // tambien la usan); la vista derivada de esta card se refresca aparte
+      // porque su clave no cambia solo con el nuevo status.
+      mutate(SWR_KEYS.trips);
+      refreshDepartures();
     } catch (error) {
       toast.error("No se pudo cambiar el estado", {
         description: getApiErrorMessage(error, "Intenta de nuevo en unos minutos"),
@@ -93,7 +91,7 @@ const UpcomingDeparturesBoard = ({ companyId }: UpcomingDeparturesBoardProps) =>
           <h2 className="font-display text-lg text-foreground">Próximas salidas</h2>
         </div>
 
-        {departures === null ? (
+        {departures === undefined ? (
           <p className="mt-4 text-sm text-muted-foreground">Cargando…</p>
         ) : departures.length === 0 ? (
           <p className="mt-4 text-sm text-muted-foreground">No hay viajes próximos programados.</p>

@@ -1,5 +1,6 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
+import useSWR, { mutate } from "swr";
 import { toast } from "sonner";
 import {
   fetchCompaniesWithDocuments,
@@ -10,8 +11,8 @@ import {
   updateCompanyActive,
   getApiErrorMessage,
   type Company,
-  type AdminUser,
 } from "@/lib/api";
+import { SWR_KEYS } from "@/lib/swrKeys";
 import AssignAdminModal from "./AssignAdminModal";
 import ConfirmModal from "@/components/ConfirmModal";
 
@@ -28,49 +29,36 @@ const STATUS_BADGE_CLASSES: Record<NonNullable<Company["status"]>, string> = {
 };
 
 const AssignAdminCard = () => {
-  const [companies, setCompanies] = useState<Company[] | null>(null);
-  const [users, setUsers] = useState<AdminUser[]>([]);
   const [search, setSearch] = useState("");
   const [target, setTarget] = useState<Company | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTarget, setActiveTarget] = useState<Company | null>(null);
   const [isTogglingActive, setIsTogglingActive] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
+  // /dashboard/superadmin/companies trae TODAS las empresas (con
+  // documentos) pero sin status/isActive; /companies (aprobadas) y
+  // /companies/pending si tienen esos campos - se cruzan por id. Lo que
+  // no aparece en ninguna de las dos quedo rechazado (es el unico
+  // estado que ningun endpoint devuelve directo).
+  const { data: companiesResult } = useSWR(SWR_KEYS.companiesWithDocuments, fetchCompaniesWithDocuments);
+  const { data: usersResult } = useSWR(SWR_KEYS.adminUsers, () => fetchUsers(1, 100));
+  const { data: approvedResult } = useSWR(SWR_KEYS.approvedCompanies, fetchCompanies);
+  const { data: pendingResult } = useSWR(SWR_KEYS.pendingCompanies, fetchPendingCompanies);
+  const users = usersResult ?? [];
 
-    (async () => {
-      // /dashboard/superadmin/companies trae TODAS las empresas (con
-      // documentos) pero sin status/isActive; /companies (aprobadas) y
-      // /companies/pending si tienen esos campos - se cruzan por id. Lo que
-      // no aparece en ninguna de las dos quedo rechazado (es el unico
-      // estado que ningun endpoint devuelve directo).
-      const [companiesResult, usersResult, approvedResult, pendingResult] = await Promise.all([
-        fetchCompaniesWithDocuments(),
-        fetchUsers(1, 100),
-        fetchCompanies(),
-        fetchPendingCompanies(),
-      ]);
-      if (cancelled) return;
-      const activeById = new Map(approvedResult.map((c) => [c.id, c.isActive ?? true]));
-      const statusById = new Map<string, NonNullable<Company["status"]>>([
-        ...approvedResult.map((c): [string, "approved"] => [c.id, "approved"]),
-        ...pendingResult.map((c): [string, "pending"] => [c.id, "pending"]),
-      ]);
-      setCompanies(
-        companiesResult.map((company) => ({
-          ...company,
-          isActive: activeById.get(company.id) ?? true,
-          status: statusById.get(company.id) ?? "rejected",
-        }))
-      );
-      setUsers(usersResult);
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const companies = useMemo<Company[] | null>(() => {
+    if (!companiesResult || !approvedResult || !pendingResult) return null;
+    const activeById = new Map(approvedResult.map((c) => [c.id, c.isActive ?? true]));
+    const statusById = new Map<string, NonNullable<Company["status"]>>([
+      ...approvedResult.map((c): [string, "approved"] => [c.id, "approved"]),
+      ...pendingResult.map((c): [string, "pending"] => [c.id, "pending"]),
+    ]);
+    return companiesResult.map((company) => ({
+      ...company,
+      isActive: activeById.get(company.id) ?? true,
+      status: statusById.get(company.id) ?? "rejected",
+    }));
+  }, [companiesResult, approvedResult, pendingResult]);
 
   const handleToggleActive = async () => {
     if (!activeTarget) return;
@@ -78,9 +66,8 @@ const AssignAdminCard = () => {
     setIsTogglingActive(true);
     try {
       const updated = await updateCompanyActive(activeTarget.id, nextActive);
-      setCompanies((prev) =>
-        (prev ?? []).map((c) => (c.id === updated.id ? { ...c, ...updated } : c))
-      );
+      mutate(SWR_KEYS.approvedCompanies);
+      mutate(SWR_KEYS.companiesWithDocuments);
       toast.success(nextActive ? `${updated.name} fue reactivada` : `${updated.name} fue desactivada`);
       setActiveTarget(null);
     } catch (error) {
@@ -104,11 +91,7 @@ const AssignAdminCard = () => {
     try {
       await assignCompanyAdmin(target.id, userId);
       const assignedUser = users.find((user) => user.id === userId);
-      setUsers((prev) =>
-        prev.map((user) =>
-          user.id === userId ? { ...user, role: "admin", companyId: target.id } : user
-        )
-      );
+      mutate(SWR_KEYS.adminUsers);
       toast.success(
         assignedUser ? `${assignedUser.name} ahora administra ${target.name}` : "Administrador asignado"
       );

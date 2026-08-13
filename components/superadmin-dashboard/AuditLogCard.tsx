@@ -1,6 +1,7 @@
 "use client";
-import { useEffect, useState } from "react";
-import { fetchAuditLogs, type AuditLogEntry } from "@/lib/api";
+import useSWR from "swr";
+import { fetchAuditLogs } from "@/lib/api";
+import { SWR_KEYS } from "@/lib/swrKeys";
 
 const ACTION_LABEL: Record<string, string> = {
   APPROVE_COMPANY: "Aprobó una empresa",
@@ -19,19 +20,7 @@ const formatDate = (iso: string) =>
   });
 
 const AuditLogCard = () => {
-  const [logs, setLogs] = useState<AuditLogEntry[] | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    fetchAuditLogs().then((result) => {
-      if (!cancelled) setLogs(result);
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const { data: logs } = useSWR(SWR_KEYS.auditLogs, fetchAuditLogs);
 
   return (
     <div className="rounded-2xl border border-border bg-card p-6">
@@ -40,7 +29,7 @@ const AuditLogCard = () => {
         Últimas acciones administrativas registradas en la plataforma.
       </p>
 
-      {logs === null ? (
+      {logs === undefined ? (
         <div className="mt-4 flex flex-col gap-2">
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="h-14 animate-pulse rounded-xl border border-border bg-muted" />
@@ -61,7 +50,7 @@ const AuditLogCard = () => {
                     {formatDate(log.createdAt)}
                   </span>
                 </div>
-                <p className="mt-1 text-xs text-muted-foreground">
+                <p className="mt-1 wrap-break-word text-xs text-muted-foreground">
                   {log.userEmail ?? "Usuario desconocido"} · {log.method} {log.endpoint}
                 </p>
               </div>

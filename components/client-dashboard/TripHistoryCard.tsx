@@ -1,6 +1,8 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import useSWR from "swr";
 import { fetchMyTickets, type ApiTicket } from "@/lib/api";
+import { SWR_KEYS } from "@/lib/swrKeys";
 import { formatCOP } from "@/data/home";
 import TripDetailModal from "@/components/client-dashboard/TripDetailModal";
 
@@ -86,18 +88,8 @@ const buildTripGroups = (tickets: ApiTicket[]): TripGroup[] => {
 };
 
 const TripHistoryCard = () => {
-  const [tickets, setTickets] = useState<ApiTicket[] | null>(null);
+  const { data: tickets } = useSWR(SWR_KEYS.myTickets, fetchMyTickets);
   const [selectedTrip, setSelectedTrip] = useState<TripGroup | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    fetchMyTickets().then((data) => {
-      if (!cancelled) setTickets(data);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const tripGroups = tickets ? buildTripGroups(tickets) : null;
 

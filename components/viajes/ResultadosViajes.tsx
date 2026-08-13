@@ -337,9 +337,9 @@ const ResultadosViajes = ({ origin, destination, dateISO, passengers }: Resultad
             {sortedTrips.map((trip) => (
               <article
                 key={trip.id}
-                className="flex flex-col gap-4 rounded-xl border border-border bg-card p-5 sm:flex-row sm:items-center sm:justify-between"
+                className="flex flex-col gap-4 rounded-xl border border-border bg-card p-5 sm:grid sm:grid-cols-[240px_1fr_auto] sm:items-center"
               >
-                <div className="flex items-center gap-4">
+                <div className="flex min-w-0 items-center gap-4">
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted font-mono-label text-xs font-bold text-card-foreground">
                     {trip.company
                       .split(" ")
@@ -348,8 +348,8 @@ const ResultadosViajes = ({ origin, destination, dateISO, passengers }: Resultad
                       .slice(0, 2)
                       .toUpperCase()}
                   </span>
-                  <div>
-                    <p className="text-sm font-bold text-card-foreground">{trip.company}</p>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-bold text-card-foreground">{trip.company}</p>
                     <p className="text-xs text-muted-foreground">{trip.totalSeats} puestos</p>
                   </div>
                 </div>

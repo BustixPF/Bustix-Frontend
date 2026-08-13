@@ -143,7 +143,7 @@ const CompanyRegisterForm = () => {
         <input
           type="text"
           name="nit"
-          placeholder="900.123.456-7"
+          placeholder="9001234567"
           value={formik.values.nit}
           onChange={formik.handleChange}
           onBlur={formik.handleBlur}

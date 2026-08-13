@@ -1,11 +1,13 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import useSWR from "swr";
 import { useRouter } from "next/navigation";
 import MobileDrawer from "@/components/MobileDrawer";
 import LogoutConfirmModal from "@/components/LogoutConfirmModal";
 import { useAuth } from "@/components/context/AuthContext";
 import Avatar from "@/components/Avatar";
-import { fetchDashboardSummary, type DashboardSummary } from "@/lib/api";
+import { fetchDashboardSummary } from "@/lib/api";
+import { SWR_KEYS } from "@/lib/swrKeys";
 
 const HamburgerIcon = () => (
   <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -20,20 +22,7 @@ const SuperAdminSidebar = () => {
   const { user, logout } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
-  const [summary, setSummary] = useState<DashboardSummary | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    (async () => {
-      const result = await fetchDashboardSummary();
-      if (!cancelled) setSummary(result);
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const { data: summary } = useSWR(SWR_KEYS.dashboardSummary, fetchDashboardSummary);
 
   const closeMenu = () => setIsOpen(false);
 

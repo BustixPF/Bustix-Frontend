@@ -1,6 +1,7 @@
 "use client";
-import { useEffect, useState } from "react";
-import { fetchMyTickets, type ApiTicket } from "@/lib/api";
+import useSWR from "swr";
+import { fetchMyTickets } from "@/lib/api";
+import { SWR_KEYS } from "@/lib/swrKeys";
 
 const MAX_NOTIFICATIONS = 3;
 
@@ -8,17 +9,7 @@ const formatPurchaseDate = (iso: string) =>
   new Date(iso).toLocaleDateString("es-CO", { day: "2-digit", month: "short" });
 
 const NotificationsCard = () => {
-  const [tickets, setTickets] = useState<ApiTicket[] | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    fetchMyTickets().then((data) => {
-      if (!cancelled) setTickets(data);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const { data: tickets } = useSWR(SWR_KEYS.myTickets, fetchMyTickets);
 
   // Sin backend de notificaciones reales, mostramos las compras confirmadas
   // más recientes en vez de inventar alertas que nunca cambian.
@@ -30,7 +21,7 @@ const NotificationsCard = () => {
     <div className="rounded-2xl border border-border bg-card p-4 sm:p-6">
       <h3 className="font-display text-base text-card-foreground">Notificaciones</h3>
 
-      {tickets === null ? (
+      {tickets === undefined ? (
         <p className="mt-4 text-sm text-muted-foreground">Cargando…</p>
       ) : recentTickets.length === 0 ? (
         <p className="mt-4 text-sm text-muted-foreground">Aún no tienes notificaciones.</p>

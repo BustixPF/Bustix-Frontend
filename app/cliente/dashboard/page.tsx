@@ -25,8 +25,8 @@ export default function ClientDashboardPage() {
             </div>
 
             <div className="flex min-w-0 flex-col gap-6">
-              <SearchCtaCard />
               <ProfileCard />
+              <SearchCtaCard />
               <NotificationsCard />
             </div>
           </div>

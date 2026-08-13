@@ -1,7 +1,9 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import useSWR from "swr";
 import { toast } from "sonner";
 import { api, fetchRoutes, getApiErrorMessage } from "@/lib/api";
+import { SWR_KEYS } from "@/lib/swrKeys";
 import { normalizeCityName } from "@/data/viajes";
 
 const CITY_DATALIST_ID = "bustix-city-options";
@@ -35,22 +37,8 @@ const NewRouteModal = ({ isOpen, onClose }: NewRouteModalProps) => {
   const [duration, setDuration] = useState("");
   const [price, setPrice] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [cityOptions, setCityOptions] = useState<string[]>([]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    let cancelled = false;
-
-    fetchRoutes().then((routes) => {
-      if (cancelled) return;
-      const cities = routes.flatMap((route) => [route.origin, route.destination]);
-      setCityOptions(canonicalCityOptions(cities));
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [isOpen]);
+  const { data: routes } = useSWR(isOpen ? SWR_KEYS.routes : null, fetchRoutes);
+  const cityOptions = canonicalCityOptions((routes ?? []).flatMap((route) => [route.origin, route.destination]));
 
   if (!isOpen) return null;
 

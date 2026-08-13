@@ -1,5 +1,6 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import useSWR from "swr";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { formatCOP } from "@/data/home";
@@ -9,6 +10,7 @@ import MobileDrawer from "@/components/MobileDrawer";
 import LogoutConfirmModal from "@/components/LogoutConfirmModal";
 import Avatar from "@/components/Avatar";
 import { fetchRoutes, type ApiRoute } from "@/lib/api";
+import { SWR_KEYS } from "@/lib/swrKeys";
 
 const HamburgerIcon = () => (
   <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -30,28 +32,14 @@ const Sidebar = () => {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
-  const [featuredRoute, setFeaturedRoute] = useState<ApiRoute | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    (async () => {
-      const routes = await fetchRoutes();
-      if (cancelled) return;
-      // "Destacada" = la más barata entre las rutas reales — no hay ningún
-      // concepto de "ruta destacada" en el backend, así que se usa el
-      // criterio más defendible en vez de inventar uno.
-      const cheapest = routes.reduce<ApiRoute | null>((min, route) => {
-        if (!min) return route;
-        return Number(route.price) < Number(min.price) ? route : min;
-      }, null);
-      setFeaturedRoute(cheapest);
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const { data: routes } = useSWR(SWR_KEYS.routes, fetchRoutes);
+  // "Destacada" = la más barata entre las rutas reales — no hay ningún
+  // concepto de "ruta destacada" en el backend, así que se usa el criterio
+  // más defendible en vez de inventar uno.
+  const featuredRoute = (routes ?? []).reduce<ApiRoute | null>((min, route) => {
+    if (!min) return route;
+    return Number(route.price) < Number(min.price) ? route : min;
+  }, null);
 
   const closeMenu = () => setIsOpen(false);
 

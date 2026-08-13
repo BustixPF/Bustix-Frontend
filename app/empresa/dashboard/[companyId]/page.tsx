@@ -71,19 +71,19 @@ function CompanyDashboardContent() {
         <CompanyTopBar company={{ name: company.name }} />
         <CompanyKpiRow companyId={companyId} />
 
-        <div className="mt-6 grid gap-6 xl:grid-cols-[1fr_1.2fr]">
-          <QuickActionsCard companyId={companyId} />
-          <div id="reservas">
-            <RecentBookingsCard companyId={companyId} />
-          </div>
-        </div>
-
-        <div className="mt-6" id="horarios">
+        <div id="horarios" className="mt-6 scroll-mt-6">
           <UpcomingDeparturesBoard companyId={companyId} />
         </div>
 
-        <div className="mt-6" id="rutas">
+        <div id="rutas" className="mt-6 scroll-mt-6">
           <CompanyRoutesCard companyId={companyId} />
+        </div>
+
+        <div className="mt-6 grid min-w-0 gap-6 xl:grid-cols-[1fr_380px]">
+          <div id="reservas" className="min-w-0 scroll-mt-6">
+            <RecentBookingsCard companyId={companyId} />
+          </div>
+          <QuickActionsCard companyId={companyId} />
         </div>
       </main>
     </div>

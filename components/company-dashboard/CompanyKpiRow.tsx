@@ -1,56 +1,39 @@
 "use client";
-import { useEffect, useState } from "react";
+import useSWR from "swr";
 import { fetchRoutes, fetchTrips } from "@/lib/api";
+import { SWR_KEYS } from "@/lib/swrKeys";
 import { formatTime } from "@/data/viajes";
-
-interface Kpi {
-  id: string;
-  label: string;
-  value: string;
-  helper: string;
-}
 
 interface CompanyKpiRowProps {
   companyId: string;
 }
 
 const CompanyKpiRow = ({ companyId }: CompanyKpiRowProps) => {
-  const [kpis, setKpis] = useState<Kpi[] | null>(null);
+  const { data: routes } = useSWR(SWR_KEYS.routes, fetchRoutes);
+  const { data: trips } = useSWR(SWR_KEYS.trips, fetchTrips);
 
-  useEffect(() => {
-    let cancelled = false;
+  if (!routes || !trips) return null;
 
-    Promise.all([fetchRoutes(), fetchTrips()]).then(([routes, trips]) => {
-      if (cancelled) return;
+  const companyRoutes = routes.filter((route) => route.companyId === companyId);
+  const now = new Date();
+  const nextTrip = trips
+    .filter((trip) => trip.companyId === companyId && new Date(trip.departureDate) > now)
+    .sort((a, b) => new Date(a.departureDate).getTime() - new Date(b.departureDate).getTime())[0];
 
-      const companyRoutes = routes.filter((route) => route.companyId === companyId);
-      const now = new Date();
-      const nextTrip = trips
-        .filter((trip) => trip.companyId === companyId && new Date(trip.departureDate) > now)
-        .sort((a, b) => new Date(a.departureDate).getTime() - new Date(b.departureDate).getTime())[0];
-
-      setKpis([
-        {
-          id: "rutas-activas",
-          label: "Rutas activas",
-          value: String(companyRoutes.length),
-          helper: `${companyRoutes.length === 1 ? "ruta operando" : "rutas operando"}`,
-        },
-        {
-          id: "proxima-salida",
-          label: "Próxima salida",
-          value: nextTrip ? formatTime(new Date(nextTrip.departureDate)) : "—",
-          helper: nextTrip ? `${nextTrip.origin} → ${nextTrip.destination}` : "Sin viajes próximos",
-        },
-      ]);
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [companyId]);
-
-  if (!kpis) return null;
+  const kpis = [
+    {
+      id: "rutas-activas",
+      label: "Rutas activas",
+      value: String(companyRoutes.length),
+      helper: `${companyRoutes.length === 1 ? "ruta operando" : "rutas operando"}`,
+    },
+    {
+      id: "proxima-salida",
+      label: "Próxima salida",
+      value: nextTrip ? formatTime(new Date(nextTrip.departureDate)) : "—",
+      helper: nextTrip ? `${nextTrip.origin} → ${nextTrip.destination}` : "Sin viajes próximos",
+    },
+  ];
 
   return (
     <div className="mt-6 grid gap-4 sm:grid-cols-2">

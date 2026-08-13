@@ -1,5 +1,6 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import useSWR, { mutate } from "swr";
 import { toast } from "sonner";
 import {
   fetchScheduleRequests,
@@ -7,8 +8,16 @@ import {
   getApiErrorMessage,
   type ScheduleRequestItem,
 } from "@/lib/api";
+import { SWR_KEYS } from "@/lib/swrKeys";
 import { formatCOP } from "@/data/home";
 import RejectRequestModal from "./RejectRequestModal";
+
+// fetchScheduleRequests ya devuelve [] si falla, no hace falta estado de error.
+const invalidate = () => {
+  mutate(SWR_KEYS.scheduleRequests);
+  mutate(SWR_KEYS.dashboardSummary);
+  mutate(SWR_KEYS.superAdminPendingSummary);
+};
 
 const formatDateTime = (iso: string): string => {
   try {
@@ -22,41 +31,15 @@ const formatDateTime = (iso: string): string => {
 };
 
 const ScheduleRequestsCard = () => {
-  const [requests, setRequests] = useState<ScheduleRequestItem[] | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const { data: requests } = useSWR(SWR_KEYS.scheduleRequests, fetchScheduleRequests);
   const [pendingActionId, setPendingActionId] = useState<string | null>(null);
   const [rejectTarget, setRejectTarget] = useState<ScheduleRequestItem | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    (async () => {
-      try {
-        const all = await fetchScheduleRequests();
-        if (!cancelled) {
-          setRequests(all);
-          setLoadError(null);
-        }
-      } catch (error) {
-        if (!cancelled) {
-          setRequests([]);
-          setLoadError(
-            getApiErrorMessage(error, "No se pudieron cargar las solicitudes de horarios")
-          );
-        }
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const handleApprove = async (request: ScheduleRequestItem) => {
     setPendingActionId(request.id);
     try {
       await respondScheduleRequest(request.id, "accepted");
-      setRequests((prev) => (prev ?? []).filter((r) => r.id !== request.id));
+      invalidate();
       toast.success("Solicitud de horario aprobada");
     } catch (error) {
       toast.error("No se pudo aprobar la solicitud", {
@@ -72,7 +55,7 @@ const ScheduleRequestsCard = () => {
     setPendingActionId(rejectTarget.id);
     try {
       await respondScheduleRequest(rejectTarget.id, "rejected", reason || undefined);
-      setRequests((prev) => (prev ?? []).filter((r) => r.id !== rejectTarget.id));
+      invalidate();
       toast.success("Solicitud de horario rechazada");
       setRejectTarget(null);
     } catch (error) {
@@ -88,7 +71,7 @@ const ScheduleRequestsCard = () => {
     <div className="rounded-2xl border border-border bg-card p-6">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h3 className="font-display text-lg text-card-foreground">Solicitudes de horarios</h3>
-        {requests !== null && requests.length > 0 && (
+        {requests !== undefined && requests.length > 0 && (
           <span className="font-mono-label text-xs text-muted-foreground">
             {requests.length} pendiente{requests.length === 1 ? "" : "s"}
           </span>
@@ -98,14 +81,12 @@ const ScheduleRequestsCard = () => {
         Horarios (Trips) solicitados por empresas para sus rutas.
       </p>
 
-      {requests === null ? (
+      {requests === undefined ? (
         <div className="mt-4 flex flex-col gap-3">
           {Array.from({ length: 2 }).map((_, i) => (
             <div key={i} className="h-24 animate-pulse rounded-xl border border-border bg-muted" />
           ))}
         </div>
-      ) : loadError ? (
-        <p className="mt-4 text-sm text-destructive">{loadError}</p>
       ) : requests.length === 0 ? (
         <p className="mt-4 text-sm text-muted-foreground">No hay solicitudes pendientes.</p>
       ) : (

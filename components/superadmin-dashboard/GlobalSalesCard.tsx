@@ -1,26 +1,14 @@
 "use client";
-import { useEffect, useState } from "react";
-import { fetchGlobalSales, type ApiSale } from "@/lib/api";
+import useSWR from "swr";
+import { fetchGlobalSales } from "@/lib/api";
+import { SWR_KEYS } from "@/lib/swrKeys";
 import { formatCOP } from "@/data/home";
 
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "numeric" });
 
 const GlobalSalesCard = () => {
-  const [sales, setSales] = useState<ApiSale[] | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    (async () => {
-      const data = await fetchGlobalSales();
-      if (!cancelled) setSales(data);
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const { data: sales } = useSWR(SWR_KEYS.globalSales, fetchGlobalSales);
 
   return (
     <div className="min-w-0 rounded-2xl border border-border bg-card p-6">
@@ -29,7 +17,7 @@ const GlobalSalesCard = () => {
         Todas las ventas confirmadas, de cualquier empresa.
       </p>
 
-      {sales === null ? (
+      {sales === undefined ? (
         <div className="mt-4 flex flex-col gap-2">
           {Array.from({ length: 3 }).map((_, i) => (
             <div key={i} className="h-10 animate-pulse rounded-lg border border-border bg-muted" />

@@ -1,5 +1,6 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import useSWR, { mutate } from "swr";
 import { toast } from "sonner";
 import {
   fetchUsers,
@@ -9,6 +10,7 @@ import {
   type AdminUser,
   type UserRole,
 } from "@/lib/api";
+import { SWR_KEYS } from "@/lib/swrKeys";
 import { getRoleLabel } from "@/lib/user";
 import Avatar from "@/components/Avatar";
 import ConfirmModal from "@/components/ConfirmModal";
@@ -17,7 +19,10 @@ import RoleChangeModal from "./RoleChangeModal";
 const PAGE_SIZE = 15;
 
 const UsersManagementCard = () => {
-  const [users, setUsers] = useState<AdminUser[] | null>(null);
+  // Misma clave/fetcher que AssignAdminCard - comparten la lista de
+  // usuarios en cache, y la paginacion ahora es en memoria sobre esos
+  // mismos 100 (en vez de pedir una pagina nueva al back cada vez).
+  const { data: allUsers } = useSWR(SWR_KEYS.adminUsers, () => fetchUsers(1, 100));
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [target, setTarget] = useState<AdminUser | null>(null);
@@ -25,26 +30,12 @@ const UsersManagementCard = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isTogglingActive, setIsTogglingActive] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    (async () => {
-      setUsers(null);
-      const result = await fetchUsers(page, PAGE_SIZE);
-      if (!cancelled) setUsers(result);
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [page]);
-
   const handleChangeRole = async (role: UserRole) => {
     if (!target) return;
     setIsSubmitting(true);
     try {
       const updated = await changeUserRole(target.id, role);
-      setUsers((prev) => (prev ?? []).map((u) => (u.id === updated.id ? updated : u)));
+      mutate(SWR_KEYS.adminUsers);
       toast.success(`${updated.name} ahora es ${getRoleLabel(updated.role)}`);
       setTarget(null);
     } catch (error) {
@@ -62,7 +53,7 @@ const UsersManagementCard = () => {
     setIsTogglingActive(true);
     try {
       const updated = await updateUserActive(activeTarget.id, nextActive);
-      setUsers((prev) => (prev ?? []).map((u) => (u.id === updated.id ? updated : u)));
+      mutate(SWR_KEYS.adminUsers);
       toast.success(nextActive ? `${updated.name} fue reactivado` : `${updated.name} fue desactivado`);
       setActiveTarget(null);
     } catch (error) {
@@ -74,11 +65,20 @@ const UsersManagementCard = () => {
     }
   };
 
-  const visibleUsers = (users ?? []).filter((u) => {
+  const filteredUsers = (allUsers ?? []).filter((u) => {
     const query = search.trim().toLowerCase();
     if (!query) return true;
     return u.name.toLowerCase().includes(query) || u.email.toLowerCase().includes(query);
   });
+  const users = allUsers ?? null;
+  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const visibleUsers = filteredUsers.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+  const handleSearchChange = (value: string) => {
+    setSearch(value);
+    setPage(1);
+  };
 
   return (
     <div className="rounded-2xl border border-border bg-card p-6">
@@ -92,7 +92,7 @@ const UsersManagementCard = () => {
         <input
           type="text"
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => handleSearchChange(e.target.value)}
           placeholder="Buscar por nombre o email..."
           className="w-full max-w-xs rounded-full border border-border bg-muted px-4 py-2 text-sm text-card-foreground outline-none focus:border-primary"
         />
@@ -114,15 +114,15 @@ const UsersManagementCard = () => {
                 key={user.id}
                 className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border p-3"
               >
-                <div className="flex items-center gap-3">
+                <div className="flex min-w-0 items-center gap-3">
                   <Avatar
                     src={user.profilePicture}
                     name={user.name}
                     className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary text-xs font-bold text-secondary-foreground"
                   />
-                  <div>
-                    <p className="text-sm font-medium text-card-foreground">{user.name}</p>
-                    <p className="text-xs text-muted-foreground">{user.email}</p>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-card-foreground">{user.name}</p>
+                    <p className="truncate text-xs text-muted-foreground">{user.email}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -163,16 +163,18 @@ const UsersManagementCard = () => {
         <button
           type="button"
           onClick={() => setPage((p) => Math.max(1, p - 1))}
-          disabled={page === 1}
+          disabled={currentPage === 1}
           className="rounded-full border border-border px-4 py-2 text-xs font-semibold text-card-foreground transition-colors hover:border-primary disabled:opacity-40"
         >
           Anterior
         </button>
-        <span className="text-xs text-muted-foreground">Página {page}</span>
+        <span className="text-xs text-muted-foreground">
+          Página {currentPage} de {totalPages}
+        </span>
         <button
           type="button"
-          onClick={() => setPage((p) => p + 1)}
-          disabled={!users || users.length < PAGE_SIZE}
+          onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+          disabled={currentPage >= totalPages}
           className="rounded-full border border-border px-4 py-2 text-xs font-semibold text-card-foreground transition-colors hover:border-primary disabled:opacity-40"
         >
           Siguiente

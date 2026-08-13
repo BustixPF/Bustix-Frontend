@@ -1,7 +1,9 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import useSWR from "swr";
 import { toast } from "sonner";
 import { api, fetchRoutes, getApiErrorMessage, type ApiRoute } from "@/lib/api";
+import { SWR_KEYS } from "@/lib/swrKeys";
 import { formatCOP } from "@/data/home";
 import ConfirmModal from "@/components/ConfirmModal";
 
@@ -16,22 +18,11 @@ const formatDuration = (minutes: number) => {
 };
 
 const CompanyRoutesCard = ({ companyId }: CompanyRoutesCardProps) => {
-  const [routes, setRoutes] = useState<ApiRoute[] | null>(null);
+  const { data: allRoutes } = useSWR(SWR_KEYS.routes, fetchRoutes);
+  const routes = allRoutes?.filter((route) => route.companyId === companyId) ?? null;
   const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
   const [requestedIds, setRequestedIds] = useState<Set<string>>(new Set());
   const [confirmTarget, setConfirmTarget] = useState<ApiRoute | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    fetchRoutes().then((allRoutes) => {
-      if (!cancelled) {
-        setRoutes(allRoutes.filter((route) => route.companyId === companyId));
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [companyId]);
 
   const handleDeleteRequest = async (routeId: string) => {
     setPendingIds((prev) => new Set(prev).add(routeId));
