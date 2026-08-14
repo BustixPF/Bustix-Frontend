@@ -206,6 +206,43 @@ export const uploadCompanyDocument = async (companyId: string, file: File) => {
   return data;
 };
 
+export interface CreateCompanyResponse {
+  id: string;
+  name: string;
+  nit: string;
+  email: string;
+  phone: string;
+  status: "pending" | "approved" | "rejected";
+  // Token temporal (30 min) para poder subir documentos justo despues de
+  // registrarse, sin sesion de usuario todavia - ver
+  // uploadCompanyRegistrationDocument.
+  documentUploadToken: string;
+  documentUploadTokenExpiresIn: number;
+}
+
+// Endpoint dedicado para subir documentos durante el registro: no requiere
+// sesion, usa el token temporal que devuelve POST /companies. El back
+// bloquea la subida en cuanto la empresa deja de estar "pending".
+export const uploadCompanyRegistrationDocument = async (
+  companyId: string,
+  documentUploadToken: string,
+  file: File
+) => {
+  const formData = new FormData();
+  formData.append("file", file);
+  const { data } = await api.post(
+    `/file-upload/company/${companyId}/registration`,
+    formData,
+    {
+      headers: {
+        "Content-Type": undefined,
+        "X-Company-Upload-Token": documentUploadToken,
+      },
+    }
+  );
+  return data;
+};
+
 // El back ya lo implemento en un endpoint dedicado (distinto del que se
 // esperaba originalmente): sube a Cloudinary y guarda la URL en
 // User.profilePicture, devolviendo { message, profilePictureUrl }.

@@ -6,7 +6,12 @@ import { toast } from "sonner";
 import EyeIcon from "@/components/forms/register/EyeIcon";
 import TermsModal from "@/components/forms/register/TermsModal";
 import PrivacyModal from "@/components/forms/register/PrivacyModal";
-import { api, getApiErrorMessage, uploadCompanyDocument } from "@/lib/api";
+import {
+  api,
+  getApiErrorMessage,
+  uploadCompanyRegistrationDocument,
+  type CreateCompanyResponse,
+} from "@/lib/api";
 import {
   companyRegisterInitialValues,
   companyRegisterValidationSchema,
@@ -33,6 +38,7 @@ const CompanyRegisterForm = () => {
   const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
   const [step, setStep] = useState<1 | 2>(1);
   const [companyId, setCompanyId] = useState<string | null>(null);
+  const [documentUploadToken, setDocumentUploadToken] = useState<string | null>(null);
   const [files, setFiles] = useState<FileEntry[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const router = useRouter();
@@ -60,10 +66,10 @@ const CompanyRegisterForm = () => {
   };
 
   const uploadOne = async (index: number) => {
-    if (!companyId) return;
+    if (!companyId || !documentUploadToken) return;
     setFiles((prev) => prev.map((f, i) => (i === index ? { ...f, status: "uploading" } : f)));
     try {
-      await uploadCompanyDocument(companyId, files[index].file);
+      await uploadCompanyRegistrationDocument(companyId, documentUploadToken, files[index].file);
       setFiles((prev) => prev.map((f, i) => (i === index ? { ...f, status: "success" } : f)));
     } catch (error) {
       setFiles((prev) =>
@@ -92,7 +98,7 @@ const CompanyRegisterForm = () => {
     validationSchema: companyRegisterValidationSchema,
     onSubmit: async (values, { setSubmitting }) => {
       try {
-        const { data } = await api.post("/companies", {
+        const { data } = await api.post<CreateCompanyResponse>("/companies", {
           name: values.companyName,
           nit: values.nit,
           email: values.email,
@@ -101,6 +107,7 @@ const CompanyRegisterForm = () => {
           confirmPassword: values.confirmPassword,
         });
         setCompanyId(data.id);
+        setDocumentUploadToken(data.documentUploadToken);
         setStep(2);
       } catch (error) {
         toast.error("No se pudo registrar la empresa", {
